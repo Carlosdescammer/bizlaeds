@@ -137,14 +137,14 @@ export async function GET(request: NextRequest) {
 // POST - Create manual usage alert
 export async function POST(request: NextRequest) {
   try {
-    const { service, alertType, message, threshold } = await request.json();
+    const { service, alertLevel, message, thresholdPercentage } = await request.json();
 
     const alert = await prisma.usageAlert.create({
       data: {
         service,
-        alertType,
+        alertLevel,
         message,
-        threshold,
+        thresholdPercentage,
       },
     });
 

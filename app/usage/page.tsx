@@ -260,12 +260,12 @@ export default function UsagePage() {
                 <div
                   key={alert.id}
                   className={`flex items-start gap-3 p-4 rounded-lg border ${
-                    alert.alertType === 'critical'
+                    alert.alertLevel === 'critical'
                       ? 'bg-red-50 border-red-200'
                       : 'bg-yellow-50 border-yellow-200'
                   }`}
                 >
-                  {alert.alertType === 'critical' ? (
+                  {alert.alertLevel === 'critical' ? (
                     <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                   ) : (
                     <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
