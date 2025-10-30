@@ -8,12 +8,12 @@ const openai = new OpenAI({
 });
 
 // Helper function to log API usage
-async function logApiUsage(service: string, businessId: string | null, cost: number, success: boolean, error?: string) {
+async function logApiUsage(serviceName: string, businessId: string | null, cost: number, success: boolean, error?: string) {
   await prisma.apiUsageLog.create({
     data: {
-      service,
+      service: serviceName,
       businessId,
-      requestType: service === 'openai' ? 'vision_analysis' : service === 'google_maps' ? 'geocode' : 'email_search',
+      requestType: serviceName === 'openai' ? 'vision_analysis' : serviceName === 'google_maps' ? 'geocode' : 'email_search',
       success,
       estimatedCost: cost,
       errorMessage: error,
@@ -26,7 +26,7 @@ async function logApiUsage(service: string, businessId: string | null, cost: num
     where: {
       month_service: {
         month,
-        service,
+        service: serviceName,
       },
     },
     update: {
@@ -35,7 +35,7 @@ async function logApiUsage(service: string, businessId: string | null, cost: num
     },
     create: {
       month,
-      service,
+      service: serviceName,
       requestsCount: 1,
       estimatedCost: cost,
     },
