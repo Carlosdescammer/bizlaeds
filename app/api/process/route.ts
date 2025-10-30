@@ -232,29 +232,54 @@ IMPORTANT:
         }
       }
 
-      // Create business record
-      const business = await prisma.business.create({
-        data: {
-          businessName: businessData.business_name,
-          businessType: businessData.business_type || (extractedData.is_multi_tenant ? 'Office/Suite' : null),
-          address: businessData.suite_number
-            ? `${fullAddress} Suite ${businessData.suite_number}`
-            : fullAddress,
-          city: businessCity,
-          state: businessState,
-          zipCode: businessZipCode,
-          phone: businessData.phone || extractedData.shared_phone,
-          email: hunterEmail || businessData.email,
-          website: businessData.website,
-          photoUrl: photo.fileUrl,
-          reviewStatus: 'pending_review',
-          aiExtractionRaw: {
-            ...extractedData,
-            extracted_business: businessData,
+      // Build business data
+      const businessAddress = businessData.suite_number
+        ? `${fullAddress} Suite ${businessData.suite_number}`
+        : fullAddress;
+
+      const businessDataToSave = {
+        businessName: businessData.business_name,
+        businessType: businessData.business_type || (extractedData.is_multi_tenant ? 'Office/Suite' : null),
+        address: businessAddress,
+        city: businessCity,
+        state: businessState,
+        zipCode: businessZipCode,
+        phone: businessData.phone || extractedData.shared_phone,
+        email: hunterEmail || businessData.email,
+        website: businessData.website,
+        photoUrl: photo.fileUrl,
+        reviewStatus: 'pending_review',
+        aiExtractionRaw: {
+          ...extractedData,
+          extracted_business: businessData,
+        },
+        confidenceScore: businessData.confidence_score || 0,
+        ...googleData,
+      };
+
+      // Use upsert to handle duplicates (update if exists, create if new)
+      const business = await prisma.business.upsert({
+        where: {
+          businessName_address: {
+            businessName: businessData.business_name,
+            address: businessAddress,
           },
-          confidenceScore: businessData.confidence_score || 0,
+        },
+        update: {
+          // Update with new data if business already exists
+          businessType: businessDataToSave.businessType,
+          city: businessDataToSave.city,
+          state: businessDataToSave.state,
+          zipCode: businessDataToSave.zipCode,
+          phone: businessDataToSave.phone || undefined,
+          email: businessDataToSave.email || undefined,
+          website: businessDataToSave.website || undefined,
+          photoUrl: businessDataToSave.photoUrl,
+          aiExtractionRaw: businessDataToSave.aiExtractionRaw,
+          confidenceScore: businessDataToSave.confidenceScore,
           ...googleData,
         },
+        create: businessDataToSave,
       });
 
       // Log activity
