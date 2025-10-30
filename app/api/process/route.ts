@@ -53,10 +53,17 @@ async function processPhoto(photoId: string) {
   }
 
   try {
-    // Get the image URL
-    const imageUrl = photo.fileUrl?.startsWith('http')
-      ? photo.fileUrl
-      : `${process.env.NEXT_PUBLIC_APP_URL}${photo.fileUrl}`;
+    // Get the image URL - handle data URLs, http URLs, and relative paths
+    let imageUrl = photo.fileUrl;
+    if (!imageUrl) {
+      throw new Error('No image URL found');
+    }
+
+    // If it's a relative path (starts with /), prepend the app URL
+    if (imageUrl.startsWith('/') && !imageUrl.startsWith('//')) {
+      imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}${imageUrl}`;
+    }
+    // data: URLs and http/https URLs are used as-is
 
     // Call OpenAI Vision API
     const response = await openai.chat.completions.create({
