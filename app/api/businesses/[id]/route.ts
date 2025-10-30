@@ -4,11 +4,12 @@ import { prisma } from '@/lib/db';
 // GET - Get single business
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const business = await prisma.business.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         photos: true,
         emailCampaigns: {
@@ -37,13 +38,14 @@ export async function GET(
 // PATCH - Update business
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const data = await request.json();
 
     const business = await prisma.business.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(data.businessName && { businessName: data.businessName }),
         ...(data.businessType && { businessType: data.businessType }),
@@ -80,16 +82,17 @@ export async function PATCH(
 // DELETE - Delete business
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.business.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     await prisma.activityLog.create({
       data: {
-        businessId: params.id,
+        businessId: id,
         action: 'business_deleted',
         details: {},
       },

@@ -38,9 +38,9 @@ type Business = {
 };
 
 export default function BusinessDetailPage() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const businessId = params.id as string;
+  const businessId = params.id;
   const initialTab = searchParams.get('tab') || 'details';
 
   const [business, setBusiness] = useState<Business | null>(null);
