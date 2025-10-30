@@ -141,10 +141,8 @@ export async function POST(request: NextRequest) {
       const campaign = await prisma.emailCampaign.create({
         data: {
           businessId: business.id,
-          emailSubject: emailContent.subject,
-          emailBody: emailContent.body,
-          status: 'draft',
-          recipientEmail: business.email,
+          subject: emailContent.subject,
+          body: emailContent.body,
         },
       });
 
@@ -163,9 +161,9 @@ export async function POST(request: NextRequest) {
         success: true,
         campaign: {
           id: campaign.id,
-          subject: campaign.emailSubject,
-          body: campaign.emailBody,
-          recipient: campaign.recipientEmail,
+          subject: campaign.subject,
+          body: campaign.body,
+          recipient: business.email,
         },
       });
     }
@@ -198,10 +196,8 @@ export async function POST(request: NextRequest) {
         campaign = await prisma.emailCampaign.create({
           data: {
             businessId: business.id,
-            emailSubject: emailContent.subject,
-            emailBody: emailContent.body,
-            status: 'draft',
-            recipientEmail: business.email,
+            subject: emailContent.subject,
+            body: emailContent.body,
           },
         });
       }
@@ -211,15 +207,15 @@ export async function POST(request: NextRequest) {
         await transporter.sendMail({
           from: process.env.GMAIL_USER,
           to: business.email,
-          subject: campaign.emailSubject || subject,
-          text: campaign.emailBody || body,
+          subject: campaign.subject || subject,
+          text: campaign.body || body,
         });
 
         // Update campaign status
         await prisma.emailCampaign.update({
           where: { id: campaign.id },
           data: {
-            status: 'sent',
+            sent: true,
             sentAt: new Date(),
           },
         });
@@ -240,20 +236,12 @@ export async function POST(request: NextRequest) {
           message: 'Email sent successfully',
           campaign: {
             id: campaign.id,
-            status: 'sent',
+            sent: true,
             sentAt: new Date(),
           },
         });
       } catch (error: any) {
         console.error('Email send error:', error);
-
-        await prisma.emailCampaign.update({
-          where: { id: campaign.id },
-          data: {
-            status: 'failed',
-            errorMessage: error.message,
-          },
-        });
 
         return NextResponse.json(
           { error: 'Failed to send email', message: error.message },
@@ -284,7 +272,8 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
     if (businessId) where.businessId = businessId;
-    if (status) where.status = status;
+    if (status === 'sent') where.sent = true;
+    if (status === 'draft') where.sent = false;
 
     const campaigns = await prisma.emailCampaign.findMany({
       where,

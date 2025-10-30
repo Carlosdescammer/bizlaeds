@@ -219,7 +219,7 @@ export default function LeadsPage() {
                 {/* Email Campaign Status */}
                 {business.emailCampaigns.length > 0 && (
                   <div className="mb-3 text-xs text-gray-500">
-                    Last email: {business.emailCampaigns[0].status}
+                    Last email: {business.emailCampaigns[0].sent ? 'sent' : 'draft'}
                   </div>
                 )}
 

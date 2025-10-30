@@ -565,17 +565,15 @@ export default function BusinessDetailPage() {
                                   className="border border-gray-200 rounded-lg p-4"
                                 >
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium">{campaign.emailSubject}</span>
+                                    <span className="font-medium">{campaign.subject || 'No subject'}</span>
                                     <span
                                       className={`px-2 py-1 rounded text-xs font-medium ${
-                                        campaign.status === 'sent'
+                                        campaign.sent
                                           ? 'bg-green-100 text-green-800'
-                                          : campaign.status === 'failed'
-                                          ? 'bg-red-100 text-red-800'
                                           : 'bg-gray-100 text-gray-800'
                                       }`}
                                     >
-                                      {campaign.status}
+                                      {campaign.sent ? 'sent' : 'draft'}
                                     </span>
                                   </div>
                                   {campaign.sentAt && (
