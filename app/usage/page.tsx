@@ -25,10 +25,14 @@ export default function UsagePage() {
     setLoading(true);
     try {
       const response = await fetch('/api/usage');
+      if (!response.ok) {
+        throw new Error('Failed to fetch usage data');
+      }
       const data = await response.json();
       setUsageData(data);
     } catch (error) {
       console.error('Failed to fetch usage:', error);
+      setUsageData({ services: [], totals: { cost: 0, requests: 0 }, alerts: [], recentLogs: [] });
     } finally {
       setLoading(false);
     }
@@ -82,7 +86,7 @@ export default function UsagePage() {
     }
   };
 
-  if (loading) {
+  if (loading || !usageData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -115,7 +119,7 @@ export default function UsagePage() {
               <h3 className="font-medium text-gray-600">Total Cost</h3>
             </div>
             <p className="text-3xl font-bold text-gray-900">
-              ${usageData?.totals?.cost?.toFixed(2) || '0.00'}
+              ${(usageData?.totals?.cost || 0).toFixed(2)}
             </p>
             <p className="text-sm text-gray-500 mt-1">This month</p>
           </div>
@@ -152,7 +156,7 @@ export default function UsagePage() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Service Usage</h2>
 
           <div className="space-y-6">
-            {usageData?.services?.map((service: ServiceUsage) => (
+            {(usageData?.services || []).map((service: ServiceUsage) => (
               <div key={service.service} className="border-b border-gray-200 last:border-0 pb-6 last:pb-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -252,7 +256,7 @@ export default function UsagePage() {
         </div>
 
         {/* Recent Alerts */}
-        {usageData?.alerts && usageData.alerts.length > 0 && (
+        {usageData?.alerts && Array.isArray(usageData.alerts) && usageData.alerts.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Alerts</h2>
             <div className="space-y-3">
@@ -284,7 +288,7 @@ export default function UsagePage() {
         )}
 
         {/* Recent Activity Log */}
-        {usageData?.recentLogs && usageData.recentLogs.length > 0 && (
+        {usageData?.recentLogs && Array.isArray(usageData.recentLogs) && usageData.recentLogs.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent API Activity</h2>
             <div className="overflow-x-auto">
