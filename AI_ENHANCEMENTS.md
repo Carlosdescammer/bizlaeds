@@ -1,9 +1,41 @@
-# AI Enhancement - Comprehensive Text Scanning
+# AI Enhancement - Comprehensive Text Scanning & Multi-Tenant Support
 
 ## Overview
-Enhanced the OpenAI Vision API prompt to perform comprehensive text scanning and business identification.
+Enhanced the OpenAI Vision API to perform comprehensive text scanning, business identification, and extract ALL businesses from multi-tenant buildings and directories.
 
 ## What Changed (2025-10-30)
+
+### Multi-Tenant Building Support (Latest)
+
+The system now extracts **ALL businesses** from multi-tenant buildings and directory signs!
+
+**What happens now:**
+- Upload a photo of a building directory (like the Chancellor Corporate Center example)
+- AI scans and identifies ALL listed businesses
+- Creates separate database records for each business
+- Includes suite numbers, shared address, and building name
+- Returns multiple business records from a single photo
+
+**Example Output from Directory Photo:**
+From the Chancellor Corporate Center directory image, the system will now extract:
+- FROM HEALTH (Suite 101)
+- COMPREHENSIVE THERAPY (Suite 105)
+- INSIDE FAMILY CHIROPRACTIC (Suite 107)
+- SAVIOR PHYSICAL THERAPY (Suite 201)
+- VISTA PROPERTIES/SERVICES (Suite 206)
+- MONUMENT MORTGAGE (Suite 207)
+- GATEWAYLIFE INSURANCE (Suite 208, 210, 211)
+- THE ARLINGTON AGENCY (Suite 209)
+- And more...
+
+**Each business gets:**
+- Full address with suite number
+- Building context (Chancellor Corporate Center)
+- Shared phone/contact info
+- Individual confidence scores
+- Separate database record
+
+### Comprehensive Text Scanning (Initial Feature)
 
 ### Previous Behavior
 - AI would look for obvious business information
