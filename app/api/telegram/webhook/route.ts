@@ -46,28 +46,16 @@ async function downloadTelegramPhoto(fileId: string): Promise<Buffer> {
 // Save photo and create database record
 async function savePhoto(buffer: Buffer, fileId: string, messageId: number) {
   try {
-    const { writeFile, mkdir } = await import('fs/promises');
-    const { join } = await import('path');
-
-    // Create uploads directory
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (e) {
-      // Directory exists
-    }
-
-    // Save file
-    const filename = `telegram-${fileId}.jpg`;
-    const filepath = join(uploadsDir, filename);
-    await writeFile(filepath, buffer);
+    // Convert to base64 data URL (Vercel serverless can't write to filesystem)
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:image/jpeg;base64,${base64}`;
 
     // Create database record
     const photo = await prisma.photo.create({
       data: {
         telegramFileId: fileId,
         telegramMessageId: BigInt(messageId),
-        fileUrl: `/uploads/${filename}`,
+        fileUrl: dataUrl, // Store as data URL
         fileSize: buffer.length,
         processed: false,
       },

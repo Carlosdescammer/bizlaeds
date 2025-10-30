@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
@@ -17,29 +15,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (e) {
-      // Directory might already exist
-    }
-
-    // Generate unique filename
+    // Convert image to base64 data URL (Vercel serverless can't write to filesystem)
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    const mimeType = file.type || 'image/jpeg';
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
     const filename = `${uuidv4()}-${file.name}`;
-    const filepath = join(uploadsDir, filename);
 
-    // Save file
-    await writeFile(filepath, buffer);
-
-    // Create photo record in database
+    // Create photo record in database with base64 data URL
     const photo = await prisma.photo.create({
       data: {
-        telegramFileId: filename, // Using filename as unique ID for web uploads
-        telegramMessageId: BigInt(Date.now()), // Timestamp as message ID
-        fileUrl: `/uploads/${filename}`,
+        telegramFileId: filename,
+        telegramMessageId: BigInt(Date.now()),
+        fileUrl: dataUrl, // Store as data URL
         fileSize: buffer.length,
         processed: false,
       },
@@ -62,7 +52,7 @@ export async function POST(request: NextRequest) {
       success: true,
       photo: {
         id: photo.id,
-        url: `/uploads/${filename}`,
+        url: dataUrl,
         status: 'queued',
       },
     });
