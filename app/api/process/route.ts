@@ -74,20 +74,40 @@ async function processPhoto(photoId: string) {
           content: [
             {
               type: 'text',
-              text: `Analyze this photo and extract business information. Return a JSON object with:
-- business_name: The business name (required)
-- business_type: Type of business (e.g., restaurant, retail store, salon)
-- address: Full street address if visible
-- city: City name
-- state: State/province
-- zip_code: Postal code
-- phone: Phone number if visible
-- email: Email address if visible
-- website: Website URL if visible
-- confidence_score: How confident you are (0.0-1.0)
-- notes: Any additional observations
+              text: `CAREFULLY scan and read ALL text visible in this image. Your job is to:
 
-Only include fields you can actually see in the image. Return valid JSON only.`,
+1. FIRST, list out ALL words and text you can see in the image
+2. THEN, identify which text represents a business name by looking for:
+   - Company names
+   - Store names
+   - Signs with business branding
+   - Text that appears to be a business identifier
+   - Text on storefronts, signs, vehicles, business cards, etc.
+
+3. Extract all available business information
+
+Return a JSON object with:
+{
+  "all_text_found": ["list", "of", "all", "text", "you", "can", "see"],
+  "business_name": "The identified business name (REQUIRED - be thorough in scanning)",
+  "business_type": "Type of business (e.g., restaurant, retail store, salon, office building)",
+  "address": "Full street address if visible",
+  "city": "City name",
+  "state": "State/province",
+  "zip_code": "Postal code",
+  "phone": "Phone number if visible",
+  "email": "Email address if visible",
+  "website": "Website URL if visible",
+  "confidence_score": 0.0-1.0,
+  "notes": "Explanation of how you identified the business name from all the text"
+}
+
+IMPORTANT:
+- Scan EVERY word, even small text
+- Don't skip any visible text
+- The business name might be on a sign, window, door, vehicle, card, building facade, etc.
+- If multiple business names are visible, choose the most prominent one
+- Return valid JSON only.`,
             },
             {
               type: 'image_url',
@@ -98,7 +118,7 @@ Only include fields you can actually see in the image. Return valid JSON only.`,
           ],
         },
       ],
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
     let aiResponse = response.choices[0]?.message?.content || '{}';
