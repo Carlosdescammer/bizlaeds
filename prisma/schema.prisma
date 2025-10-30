@@ -1,0 +1,167 @@
+// Prisma schema for existing Neon database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  businessName       String    @map("business_name") @db.VarChar(255)
+  businessType       String?   @map("business_type") @db.VarChar(100)
+  address            String?   @db.Text
+  city               String?   @db.VarChar(100)
+  state              String?   @db.VarChar(50)
+  zipCode            String?   @map("zip_code") @db.VarChar(20)
+  country            String?   @default("USA") @db.VarChar(100)
+  phone              String?   @db.VarChar(50)
+  email              String?   @db.VarChar(255)
+  website            String?   @db.VarChar(500)
+
+  latitude           Decimal?  @db.Decimal(10, 8)
+  longitude          Decimal?  @db.Decimal(11, 8)
+  googlePlaceId      String?   @map("google_place_id") @db.VarChar(255)
+
+  photoUrl           String?   @map("photo_url") @db.Text
+  telegramMessageId  BigInt?   @map("telegram_message_id")
+  telegramUserId     BigInt?   @map("telegram_user_id")
+
+  reviewStatus       String    @default("pending_review") @map("review_status") @db.VarChar(50)
+
+  studioNinjaId      String?   @map("studio_ninja_id") @db.VarChar(100)
+  crmSyncedAt        DateTime? @map("crm_synced_at") @db.Timestamp(6)
+
+  aiExtractionRaw    Json?     @map("ai_extraction_raw") @db.JsonB
+  confidenceScore    Decimal?  @map("confidence_score") @db.Decimal(3, 2)
+
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  approvedAt         DateTime? @map("approved_at") @db.Timestamp(6)
+
+  photos             Photo[]
+  emailCampaigns     EmailCampaign[]
+  apiUsageLogs       ApiUsageLog[]
+
+  @@unique([businessName, address])
+  @@map("businesses")
+}
+
+model Photo {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  businessId       String?   @map("business_id") @db.Uuid
+  telegramFileId   String    @map("telegram_file_id") @db.VarChar(255)
+  telegramMessageId BigInt   @map("telegram_message_id")
+  fileUrl          String?   @map("file_url") @db.Text
+  fileSize         Int?      @map("file_size")
+
+  processed        Boolean   @default(false)
+  processingError  String?   @map("processing_error") @db.Text
+
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  business         Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([telegramFileId])
+  @@map("photos")
+}
+
+model EmailCampaign {
+  id                      String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  businessId              String?   @map("business_id") @db.Uuid
+
+  subject                 String?   @db.VarChar(500)
+  body                    String?   @db.Text
+  previewSent             Boolean   @default(false) @map("preview_sent")
+
+  approvedByTelegram      Boolean   @default(false) @map("approved_by_telegram")
+  approvedAt              DateTime? @map("approved_at") @db.Timestamp(6)
+  telegramApprovalMessageId BigInt? @map("telegram_approval_message_id")
+
+  sent                    Boolean   @default(false)
+  sentAt                  DateTime? @map("sent_at") @db.Timestamp(6)
+  gmailMessageId          String?   @map("gmail_message_id") @db.VarChar(255)
+
+  opened                  Boolean   @default(false)
+  openedAt                DateTime? @map("opened_at") @db.Timestamp(6)
+  replied                 Boolean   @default(false)
+  repliedAt               DateTime? @map("replied_at") @db.Timestamp(6)
+
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  business                Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("email_campaigns")
+}
+
+model ApiUsage {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  month           String   @db.VarChar(7)
+  service         String   @db.VarChar(50)
+  requestsCount   Int      @default(0) @map("requests_count")
+  estimatedCost   Decimal  @default(0.00) @map("estimated_cost") @db.Decimal(10, 2)
+  lastUpdated     DateTime @default(now()) @updatedAt @map("last_updated") @db.Timestamp(6)
+  metadata        Json?    @db.JsonB
+
+  @@unique([month, service])
+  @@map("api_usage")
+}
+
+model ApiUsageLog {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  service        String    @db.VarChar(50)
+  businessId     String?   @map("business_id") @db.Uuid
+  requestType    String?   @map("request_type") @db.VarChar(100)
+  success        Boolean   @default(true)
+  estimatedCost  Decimal   @default(0.00) @map("estimated_cost") @db.Decimal(10, 4)
+  responseData   Json?     @map("response_data") @db.JsonB
+  errorMessage   String?   @map("error_message") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  business       Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@map("api_usage_log")
+}
+
+model TelegramCallback {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  businessId       String?   @map("business_id") @db.Uuid
+  callbackQueryId  String?   @map("callback_query_id") @db.VarChar(255)
+  callbackData     String?   @map("callback_data") @db.VarChar(255)
+  action           String?   @db.VarChar(50)
+  telegramUserId   BigInt?   @map("telegram_user_id")
+  processed        Boolean   @default(false)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@map("telegram_callbacks")
+}
+
+model ActivityLog {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  businessId    String?   @map("business_id") @db.Uuid
+  action        String    @db.VarChar(100)
+  details       Json?     @db.JsonB
+  telegramUserId BigInt?  @map("telegram_user_id")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@map("activity_log")
+}
+
+model UsageAlert {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  service            String    @db.VarChar(50)
+  alertLevel         String    @map("alert_level") @db.VarChar(20)
+  thresholdPercentage Int?     @map("threshold_percentage")
+  currentUsage       Int?      @map("current_usage")
+  maxUsage           Int?      @map("max_usage")
+  message            String?   @db.Text
+  telegramSent       Boolean   @default(false) @map("telegram_sent")
+  telegramSentAt     DateTime? @map("telegram_sent_at") @db.Timestamp(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@map("usage_alerts")
+}
