@@ -201,29 +201,46 @@ export default function Home() {
                   <CheckCircle2 className="w-6 h-6 text-green-600 mt-1" />
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-green-900 mb-2">
-                      Business Found!
+                      {result.count > 1 ? `${result.count} Businesses Found!` : 'Business Found!'}
                     </h3>
-                    <div className="space-y-2">
-                      <p className="text-gray-800">
-                        <span className="font-semibold">Name:</span>{' '}
-                        {result.business.name}
+                    {result.isMultiTenant && result.buildingName && (
+                      <p className="text-gray-700 mb-3">
+                        <span className="font-semibold">Building:</span> {result.buildingName}
                       </p>
-                      <p className="text-gray-800">
-                        <span className="font-semibold">Type:</span>{' '}
-                        {result.business.type || 'Unknown'}
-                      </p>
-                      <p className="text-gray-800">
-                        <span className="font-semibold">Confidence:</span>{' '}
-                        {Math.round((result.business.confidence || 0) * 100)}%
-                      </p>
+                    )}
+                    <div className="space-y-4">
+                      {result.businesses && result.businesses.map((business: any, index: number) => (
+                        <div key={business.id} className="bg-white rounded-lg p-4 border border-green-200">
+                          <div className="space-y-2">
+                            <p className="text-gray-800 font-semibold text-lg">
+                              {business.name}
+                              {business.suite && <span className="text-sm text-gray-600 ml-2">(Suite {business.suite})</span>}
+                            </p>
+                            <p className="text-gray-700 text-sm">
+                              <span className="font-semibold">Type:</span>{' '}
+                              {business.type || 'Unknown'}
+                            </p>
+                            <p className="text-gray-700 text-sm">
+                              <span className="font-semibold">Confidence:</span>{' '}
+                              {Math.round((business.confidence || 0) * 100)}%
+                            </p>
+                          </div>
+                          <Link
+                            href={`/leads/${business.id}`}
+                            className="inline-flex items-center justify-center bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-green-700 transition-colors mt-3"
+                          >
+                            View Details
+                          </Link>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
                 <Link
-                  href={`/leads/${result.business.id}`}
-                  className="inline-flex items-center justify-center bg-green-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-green-700 transition-colors"
+                  href="/leads"
+                  className="inline-flex items-center justify-center bg-blue-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-700 transition-colors mt-4"
                 >
-                  View Details
+                  View All Leads
                 </Link>
               </div>
             )}

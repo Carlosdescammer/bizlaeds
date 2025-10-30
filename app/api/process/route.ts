@@ -77,36 +77,46 @@ async function processPhoto(photoId: string) {
               text: `CAREFULLY scan and read ALL text visible in this image. Your job is to:
 
 1. FIRST, list out ALL words and text you can see in the image
-2. THEN, identify which text represents a business name by looking for:
+2. THEN, identify ALL business names (not just one) by looking for:
    - Company names
    - Store names
    - Signs with business branding
-   - Text that appears to be a business identifier
-   - Text on storefronts, signs, vehicles, business cards, etc.
+   - Directory listings
+   - Suite/unit occupants
+   - Text on storefronts, signs, vehicles, business cards, building directories, etc.
 
-3. Extract all available business information
+3. Extract information for EVERY business you find
 
 Return a JSON object with:
 {
   "all_text_found": ["list", "of", "all", "text", "you", "can", "see"],
-  "business_name": "The identified business name (REQUIRED - be thorough in scanning)",
-  "business_type": "Type of business (e.g., restaurant, retail store, salon, office building)",
-  "address": "Full street address if visible",
-  "city": "City name",
-  "state": "State/province",
-  "zip_code": "Postal code",
-  "phone": "Phone number if visible",
-  "email": "Email address if visible",
-  "website": "Website URL if visible",
-  "confidence_score": 0.0-1.0,
-  "notes": "Explanation of how you identified the business name from all the text"
+  "is_multi_tenant": true/false,
+  "building_name": "Building or complex name if this is a directory/multi-tenant building",
+  "shared_address": "Shared address for all businesses if visible",
+  "shared_city": "Shared city",
+  "shared_state": "Shared state",
+  "shared_zip_code": "Shared zip code",
+  "shared_phone": "Shared/leasing phone if visible",
+  "businesses": [
+    {
+      "business_name": "Business name (REQUIRED)",
+      "business_type": "Type of business",
+      "suite_number": "Suite/unit number if visible",
+      "phone": "Business-specific phone if visible",
+      "email": "Email if visible",
+      "website": "Website if visible",
+      "confidence_score": 0.0-1.0
+    }
+  ],
+  "notes": "Explanation of what you found - single business or multi-tenant directory"
 }
 
 IMPORTANT:
 - Scan EVERY word, even small text
-- Don't skip any visible text
-- The business name might be on a sign, window, door, vehicle, card, building facade, etc.
-- If multiple business names are visible, choose the most prominent one
+- If this is a building directory, extract ALL listed businesses
+- If it's a single business, return just one business in the array
+- Include suite/unit numbers for multi-tenant buildings
+- Don't skip any visible business names
 - Return valid JSON only.`,
             },
             {
@@ -131,123 +141,160 @@ IMPORTANT:
     // Log OpenAI usage
     await logApiUsage('openai', null, 0.02, true);
 
-    // Validate confidence score
-    if (!extractedData.business_name || (extractedData.confidence_score && extractedData.confidence_score < 0.7)) {
+    // Validate we have businesses array
+    if (!extractedData.businesses || !Array.isArray(extractedData.businesses) || extractedData.businesses.length === 0) {
       await prisma.photo.update({
         where: { id: photoId },
         data: {
           processed: true,
-          processingError: 'Low confidence or missing business name',
+          processingError: 'No businesses found in image',
         },
       });
-      return { success: false, error: 'Low confidence extraction' };
+      return { success: false, error: 'No businesses found' };
     }
 
-    // Enrich with Google Maps
-    let googleData = {};
-    if (extractedData.business_name && extractedData.address) {
-      try {
-        const mapsResponse = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
-          params: {
-            input: `${extractedData.business_name} ${extractedData.address}`,
-            inputtype: 'textquery',
-            fields: 'place_id,formatted_address,name,geometry',
-            key: process.env.GOOGLE_MAPS_API_KEY,
-          },
-        });
+    // Shared data from multi-tenant building
+    const sharedAddress = extractedData.shared_address;
+    const sharedCity = extractedData.shared_city;
+    const sharedState = extractedData.shared_state;
+    const sharedZipCode = extractedData.shared_zip_code;
 
-        await logApiUsage('google_maps', null, 0.005, true);
+    // Process each business found
+    const createdBusinesses = [];
 
-        if (mapsResponse.data.candidates && mapsResponse.data.candidates[0]) {
-          const place = mapsResponse.data.candidates[0];
-          googleData = {
-            googlePlaceId: place.place_id,
-            latitude: place.geometry?.location?.lat,
-            longitude: place.geometry?.location?.lng,
-          };
-        }
-      } catch (error: any) {
-        console.error('Google Maps error:', error);
-        await logApiUsage('google_maps', null, 0.005, false, error.message);
+    for (const businessData of extractedData.businesses) {
+      // Skip if confidence too low or no business name
+      if (!businessData.business_name || (businessData.confidence_score && businessData.confidence_score < 0.5)) {
+        continue;
       }
-    }
 
-    // Find email with Hunter.io
-    let hunterEmail = null;
-    if (extractedData.website || extractedData.business_name) {
-      try {
-        const domain = extractedData.website
-          ? new URL(extractedData.website).hostname
-          : `${extractedData.business_name.toLowerCase().replace(/\s+/g, '')}.com`;
+      // Build full address for this business
+      const fullAddress = sharedAddress || businessData.address;
+      const businessCity = sharedCity || businessData.city;
+      const businessState = sharedState || businessData.state;
+      const businessZipCode = sharedZipCode || businessData.zip_code;
 
-        const hunterResponse = await axios.get('https://api.hunter.io/v2/domain-search', {
-          params: {
-            domain,
-            limit: 1,
-            api_key: process.env.HUNTER_API_KEY,
-          },
-        });
+      // Enrich with Google Maps (only if we have an address)
+      let googleData = {};
+      if (businessData.business_name && fullAddress) {
+        try {
+          const searchQuery = businessData.suite_number
+            ? `${businessData.business_name} Suite ${businessData.suite_number} ${fullAddress}`
+            : `${businessData.business_name} ${fullAddress}`;
 
-        await logApiUsage('hunter_io', null, 0.001, true);
+          const mapsResponse = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
+            params: {
+              input: searchQuery,
+              inputtype: 'textquery',
+              fields: 'place_id,formatted_address,name,geometry',
+              key: process.env.GOOGLE_MAPS_API_KEY,
+            },
+          });
 
-        if (hunterResponse.data.data?.emails && hunterResponse.data.data.emails.length > 0) {
-          hunterEmail = hunterResponse.data.data.emails[0].value;
+          await logApiUsage('google_maps', null, 0.005, true);
+
+          if (mapsResponse.data.candidates && mapsResponse.data.candidates[0]) {
+            const place = mapsResponse.data.candidates[0];
+            googleData = {
+              googlePlaceId: place.place_id,
+              latitude: place.geometry?.location?.lat,
+              longitude: place.geometry?.location?.lng,
+            };
+          }
+        } catch (error: any) {
+          console.error('Google Maps error:', error);
+          await logApiUsage('google_maps', null, 0.005, false, error.message);
         }
-      } catch (error: any) {
-        console.error('Hunter.io error:', error);
-        await logApiUsage('hunter_io', null, 0.001, false, error.message);
       }
+
+      // Find email with Hunter.io (only for businesses with websites)
+      let hunterEmail = null;
+      if (businessData.website) {
+        try {
+          const domain = new URL(businessData.website).hostname;
+
+          const hunterResponse = await axios.get('https://api.hunter.io/v2/domain-search', {
+            params: {
+              domain,
+              limit: 1,
+              api_key: process.env.HUNTER_API_KEY,
+            },
+          });
+
+          await logApiUsage('hunter_io', null, 0.001, true);
+
+          if (hunterResponse.data.data?.emails && hunterResponse.data.data.emails.length > 0) {
+            hunterEmail = hunterResponse.data.data.emails[0].value;
+          }
+        } catch (error: any) {
+          console.error('Hunter.io error:', error);
+          await logApiUsage('hunter_io', null, 0.001, false, error.message);
+        }
+      }
+
+      // Create business record
+      const business = await prisma.business.create({
+        data: {
+          businessName: businessData.business_name,
+          businessType: businessData.business_type || (extractedData.is_multi_tenant ? 'Office/Suite' : null),
+          address: businessData.suite_number
+            ? `${fullAddress} Suite ${businessData.suite_number}`
+            : fullAddress,
+          city: businessCity,
+          state: businessState,
+          zipCode: businessZipCode,
+          phone: businessData.phone || extractedData.shared_phone,
+          email: hunterEmail || businessData.email,
+          website: businessData.website,
+          photoUrl: photo.fileUrl,
+          reviewStatus: 'pending_review',
+          aiExtractionRaw: {
+            ...extractedData,
+            extracted_business: businessData,
+          },
+          confidenceScore: businessData.confidence_score || 0,
+          ...googleData,
+        },
+      });
+
+      // Log activity
+      await prisma.activityLog.create({
+        data: {
+          businessId: business.id,
+          action: 'business_extracted',
+          details: {
+            photoId,
+            confidence: businessData.confidence_score,
+            isMultiTenant: extractedData.is_multi_tenant,
+            suiteNumber: businessData.suite_number,
+          },
+        },
+      });
+
+      createdBusinesses.push({
+        id: business.id,
+        name: business.businessName,
+        type: business.businessType,
+        confidence: business.confidenceScore,
+        suite: businessData.suite_number,
+      });
     }
 
-    // Create business record
-    const business = await prisma.business.create({
-      data: {
-        businessName: extractedData.business_name,
-        businessType: extractedData.business_type,
-        address: extractedData.address,
-        city: extractedData.city,
-        state: extractedData.state,
-        zipCode: extractedData.zip_code,
-        phone: extractedData.phone,
-        email: hunterEmail || extractedData.email,
-        website: extractedData.website,
-        photoUrl: photo.fileUrl,
-        reviewStatus: 'pending_review',
-        aiExtractionRaw: extractedData,
-        confidenceScore: extractedData.confidence_score || 0,
-        ...googleData,
-      },
-    });
-
-    // Link photo to business
+    // Link photo to first business (or mark as processed if none created)
     await prisma.photo.update({
       where: { id: photoId },
       data: {
-        businessId: business.id,
+        businessId: createdBusinesses.length > 0 ? createdBusinesses[0].id : null,
         processed: true,
-      },
-    });
-
-    // Log activity
-    await prisma.activityLog.create({
-      data: {
-        businessId: business.id,
-        action: 'business_extracted',
-        details: {
-          photoId,
-          confidence: extractedData.confidence_score,
-        },
       },
     });
 
     return {
       success: true,
-      business: {
-        id: business.id,
-        name: business.businessName,
-        type: business.businessType,
-        confidence: business.confidenceScore,
-      },
+      businesses: createdBusinesses,
+      count: createdBusinesses.length,
+      isMultiTenant: extractedData.is_multi_tenant,
+      buildingName: extractedData.building_name,
     };
   } catch (error: any) {
     console.error('Processing error:', error);

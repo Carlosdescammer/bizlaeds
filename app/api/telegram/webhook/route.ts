@@ -123,32 +123,60 @@ export async function POST(request: NextRequest) {
         // Process photo
         const result = await processPhoto(savedPhoto.id);
 
-        if (result.success && result.business) {
-          // Send success message with business info
+        if (result.success && result.businesses && result.businesses.length > 0) {
+          // Build message for single or multiple businesses
+          let message = result.count > 1
+            ? `✅ *${result.count} Businesses Found!*\n\n`
+            : `✅ *Business Found!*\n\n`;
+
+          if (result.isMultiTenant && result.buildingName) {
+            message += `🏢 Building: *${result.buildingName}*\n\n`;
+          }
+
+          // Add each business
+          result.businesses.forEach((business: any, index: number) => {
+            message += `📌 *${business.name}*`;
+            if (business.suite) {
+              message += ` (Suite ${business.suite})`;
+            }
+            message += `\n`;
+            message += `   Type: ${business.type || 'Unknown'}\n`;
+            message += `   Confidence: ${Math.round((business.confidence || 0) * 100)}%\n`;
+            if (index < result.businesses.length - 1) {
+              message += '\n';
+            }
+          });
+
+          message += `\n${result.count > 1 ? 'All businesses have' : 'The business has'} been added to your dashboard.`;
+
+          // Create inline keyboard with links to each business
+          const keyboard = result.businesses.slice(0, 3).map((business: any) => [
+            {
+              text: business.suite ? `${business.name} (${business.suite})` : business.name,
+              url: `${process.env.NEXT_PUBLIC_APP_URL}/leads/${business.id}`,
+            }
+          ]);
+
+          if (result.count > 3) {
+            keyboard.push([
+              {
+                text: '📋 View All Leads',
+                url: `${process.env.NEXT_PUBLIC_APP_URL}/leads`,
+              }
+            ]);
+          }
+
           await sendTelegramMessage(
             chatId,
-            `✅ *Business Found!*\n\n` +
-            `📌 *${result.business.name}*\n` +
-            `🏢 Type: ${result.business.type || 'Unknown'}\n` +
-            `📊 Confidence: ${Math.round((result.business.confidence || 0) * 100)}%\n\n` +
-            `The business has been added to your dashboard for review.`,
-            {
-              inline_keyboard: [
-                [
-                  {
-                    text: '👀 View Details',
-                    url: `${process.env.NEXT_PUBLIC_APP_URL}/leads/${result.business.id}`,
-                  },
-                ],
-              ],
-            }
+            message,
+            { inline_keyboard: keyboard }
           );
 
-          // Store callback data
+          // Store callback data for first business
           await prisma.telegramCallback.create({
             data: {
-              callbackData: `business_${result.business.id}`,
-              businessId: result.business.id,
+              callbackData: `business_${result.businesses[0].id}`,
+              businessId: result.businesses[0].id,
               action: 'view_business',
             },
           });
