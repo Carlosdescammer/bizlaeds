@@ -159,10 +159,9 @@ export async function POST(request: NextRequest) {
           // Store callback data
           await prisma.telegramCallback.create({
             data: {
-              callbackId: `business_${result.business.id}`,
+              callbackData: `business_${result.business.id}`,
               businessId: result.business.id,
               action: 'view_business',
-              data: result.business,
             },
           });
         } else {
@@ -187,27 +186,14 @@ export async function POST(request: NextRequest) {
 
     // Handle callback queries (button presses)
     if (update.callback_query) {
-      const callbackData = update.callback_query.data;
-      const callbackId = update.callback_query.id;
+      const callbackQueryId = update.callback_query.id;
 
       try {
-        const callback = await prisma.telegramCallback.findUnique({
-          where: { callbackId: callbackData },
+        // Answer callback query
+        await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+          callback_query_id: callbackQueryId,
+          text: 'Opening details...',
         });
-
-        if (callback) {
-          // Mark as processed
-          await prisma.telegramCallback.update({
-            where: { callbackId: callbackData },
-            data: { processed: true },
-          });
-
-          // Answer callback query
-          await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
-            callback_query_id: callbackId,
-            text: 'Opening details...',
-          });
-        }
       } catch (error) {
         console.error('Callback handling error:', error);
       }
