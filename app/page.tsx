@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import imageCompression from 'browser-image-compression';
 
 export default function Home() {
   const [uploading, setUploading] = useState(false);
@@ -19,9 +20,28 @@ export default function Home() {
     setError('');
 
     try {
+      // Convert HEIC/unsupported formats to JPEG
+      let processedFile = file;
+      if (file.type === 'image/heic' || file.type === 'image/heif' || file.type === '') {
+        try {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: 'image/jpeg',
+          };
+          processedFile = await imageCompression(file, options);
+        } catch (conversionError) {
+          console.error('Image conversion error:', conversionError);
+          setError('Failed to convert image. Please try a JPEG or PNG image.');
+          setUploading(false);
+          return;
+        }
+      }
+
       // Upload photo
       const formData = new FormData();
-      formData.append('photo', file);
+      formData.append('photo', processedFile);
       formData.append('source', 'web');
 
       const uploadResponse = await fetch('/api/upload', {
