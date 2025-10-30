@@ -20,22 +20,26 @@ export default function Home() {
     setError('');
 
     try {
-      // Convert HEIC/unsupported formats to JPEG
+      // Check for HEIC format and show helpful error
+      if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+        setError('HEIC format not supported. Please convert to JPEG first, or change your iPhone camera settings to "Most Compatible" format.');
+        setUploading(false);
+        return;
+      }
+
+      // Compress and optimize image for better upload performance
       let processedFile = file;
-      if (file.type === 'image/heic' || file.type === 'image/heif' || file.type === '') {
+      if (file.type.startsWith('image/') && file.size > 1000000) { // > 1MB
         try {
           const options = {
             maxSizeMB: 1,
             maxWidthOrHeight: 1920,
             useWebWorker: true,
-            fileType: 'image/jpeg',
           };
           processedFile = await imageCompression(file, options);
-        } catch (conversionError) {
-          console.error('Image conversion error:', conversionError);
-          setError('Failed to convert image. Please try a JPEG or PNG image.');
-          setUploading(false);
-          return;
+        } catch (compressionError) {
+          console.warn('Image compression failed, using original:', compressionError);
+          // Continue with original file if compression fails
         }
       }
 
@@ -124,6 +128,11 @@ export default function Home() {
 
         {/* Upload Area */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-900">
+              <strong>iPhone users:</strong> If you get an error, go to Settings → Camera → Formats and select "Most Compatible" to save photos as JPEG instead of HEIC.
+            </p>
+          </div>
           <div className="space-y-6">
             {/* Mobile Camera Button */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -150,7 +159,7 @@ export default function Home() {
             <input
               ref={cameraInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
               capture="environment"
               onChange={handleFileChange}
               className="hidden"
@@ -159,7 +168,7 @@ export default function Home() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
               onChange={handleFileChange}
               className="hidden"
             />
