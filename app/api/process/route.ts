@@ -60,7 +60,7 @@ async function processPhoto(photoId: string) {
 
     // Call OpenAI Vision API
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-vision-preview',
+      model: 'gpt-4o', // Updated model (gpt-4-vision-preview is deprecated)
       messages: [
         {
           role: 'user',
