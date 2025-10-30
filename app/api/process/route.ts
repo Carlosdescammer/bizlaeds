@@ -101,7 +101,11 @@ Only include fields you can actually see in the image. Return valid JSON only.`,
       max_tokens: 1000,
     });
 
-    const aiResponse = response.choices[0]?.message?.content || '{}';
+    let aiResponse = response.choices[0]?.message?.content || '{}';
+
+    // Remove markdown code blocks if present (GPT-4o sometimes wraps JSON in ```json ```)
+    aiResponse = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
     const extractedData = JSON.parse(aiResponse);
 
     // Log OpenAI usage
