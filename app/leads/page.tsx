@@ -7,6 +7,7 @@ import { BusinessDataTable } from '@/components/business-data-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { ModeToggle } from '@/components/mode-toggle';
 
 type Business = {
   id: string;
@@ -74,8 +75,35 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="flex-1 bg-background">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Business Leads</h1>
+              <p className="text-muted-foreground mt-1">Manage and track your business leads</p>
+            </div>
+            <nav className="flex gap-3">
+              <Link href="/">
+                <Button variant="outline">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Photo
+                </Button>
+              </Link>
+              <Link href="/usage">
+                <Button variant="outline">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Usage
+                </Button>
+              </Link>
+              <ModeToggle />
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
