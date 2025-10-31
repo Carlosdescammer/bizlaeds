@@ -1,7 +1,16 @@
 import axios from 'axios';
 import fs from 'fs';
+import dotenv from 'dotenv';
 
-const GOOGLE_API_KEY = 'AIzaSyB9mztWPNN_daayvfDcpdch3iiRzviullQ';
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+
+const GOOGLE_API_KEY = process.env.GOOGLE_VISION_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+
+if (!GOOGLE_API_KEY) {
+  console.error('❌ Error: GOOGLE_VISION_API_KEY or GOOGLE_MAPS_API_KEY not found in .env.local');
+  process.exit(1);
+}
 
 async function testVisionAPI() {
   console.log('🧪 Testing Google Vision API...\n');

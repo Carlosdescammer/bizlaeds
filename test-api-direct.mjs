@@ -1,6 +1,15 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
 
-const RAPIDAPI_KEY = 'd33edf8110mshfe0f925e654598bp101c17jsn383f5665a799';
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+
+if (!RAPIDAPI_KEY) {
+  console.error('❌ Error: RAPIDAPI_KEY not found in .env.local');
+  process.exit(1);
+}
 
 async function testDirectAPI() {
   console.log('🧪 Testing LinkedIn API directly...\n');
