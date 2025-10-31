@@ -1,16 +1,15 @@
 'use client';
 
-import { StackProvider, StackTheme } from "@stackframe/stack";
+import { StackProvider, StackClientApp } from "@stackframe/stack";
+
+const stackApp = new StackClientApp({
+  projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID!,
+  publishableClientKey: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY!,
+});
 
 export default function StackProviderWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <StackProvider
-      app={{
-        projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID!,
-        publishableClientKey: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY!,
-      } as any}
-      theme={StackTheme.withDefault()}
-    >
+    <StackProvider app={stackApp}>
       {children}
     </StackProvider>
   );
