@@ -59,6 +59,8 @@ type Business = {
   googlePriceLevel: number | null;
   googleBusinessHours: any;
   formattedAddress: string | null;
+  googlePhotosData: any;
+  googleEnrichedAt: string | null;
 };
 
 export default function BusinessDetailPage() {
