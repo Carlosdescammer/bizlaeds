@@ -256,6 +256,7 @@ export async function enrichBusiness(
 // ============================================================================
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+const FRESH_LINKEDIN_API_KEY = process.env.FRESH_LINKEDIN_API_KEY || RAPIDAPI_KEY;
 
 /**
  * Search for company on LinkedIn by domain using RapidAPI
@@ -314,6 +315,72 @@ export async function searchLinkedInByDomain(domain: string): Promise<{
     };
   } catch (error: any) {
     console.error('LinkedIn search by domain error:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message,
+    };
+  }
+}
+
+/**
+ * Search for company on LinkedIn using Fresh LinkedIn Profile Data API (Alternative)
+ */
+export async function searchLinkedInByURLFresh(linkedinUrl: string): Promise<{
+  success: boolean;
+  linkedinUrl?: string;
+  companyData?: any;
+  error?: string;
+}> {
+  if (!FRESH_LINKEDIN_API_KEY) {
+    return {
+      success: false,
+      error: 'Fresh LinkedIn API key not configured',
+    };
+  }
+
+  try {
+    // Using Fresh LinkedIn Profile Data - Get Company by URL
+    const response = await axios.get(
+      'https://fresh-linkedin-profile-data.p.rapidapi.com/get-company-by-linkedinurl',
+      {
+        params: {
+          linkedin_url: linkedinUrl,
+        },
+        headers: {
+          'X-RapidAPI-Key': FRESH_LINKEDIN_API_KEY,
+          'X-RapidAPI-Host': 'fresh-linkedin-profile-data.p.rapidapi.com',
+        },
+      }
+    );
+
+    const company = response.data?.data || response.data;
+
+    if (!company || !company.name) {
+      return {
+        success: false,
+        error: 'No company data found',
+      };
+    }
+
+    return {
+      success: true,
+      linkedinUrl: linkedinUrl,
+      companyData: {
+        name: company.name,
+        description: company.description || company.about,
+        industry: company.industry,
+        companySize: company.company_size || company.staffCount,
+        headquarters: company.headquarters || company.hq,
+        website: company.website,
+        followerCount: company.followers || company.follower_count,
+        foundedYear: company.founded_year || company.founded,
+        specialties: company.specialities || company.specialties || [],
+        employeeCount: company.employee_count,
+        companyType: company.company_type,
+      },
+    };
+  } catch (error: any) {
+    console.error('Fresh LinkedIn API error:', error);
     return {
       success: false,
       error: error.response?.data?.message || error.message,
@@ -404,10 +471,11 @@ export async function getLinkedInCompanyDetails(linkedinUrl: string): Promise<{
 }
 
 /**
- * Enrich business with LinkedIn data
+ * Enrich business with LinkedIn data (tries multiple APIs for best results)
  */
 export async function enrichWithLinkedIn(
-  businessId: string
+  businessId: string,
+  preferredApi?: 'realtime' | 'fresh'
 ): Promise<EnrichmentResult> {
   const business = await prisma.business.findUnique({
     where: { id: businessId },
@@ -443,6 +511,7 @@ export async function enrichWithLinkedIn(
 
   // Try to find LinkedIn profile if we don't have one
   if (!business.linkedinUrl && domain) {
+    // Try Real-Time LinkedIn Scraper API first (or as preferred)
     const searchResult = await searchLinkedInByDomain(domain);
 
     if (searchResult.success) {
@@ -464,7 +533,7 @@ export async function enrichWithLinkedIn(
       // Log API usage
       await prisma.apiUsageLog.create({
         data: {
-          service: 'linkedin_rapidapi',
+          service: 'linkedin_realtime_api',
           businessId,
           requestType: 'company_search_by_domain',
           success: true,
@@ -487,7 +556,41 @@ export async function enrichWithLinkedIn(
       };
     }
   } else if (business.linkedinUrl) {
-    // We already have a LinkedIn URL, get detailed info
+    // We already have a LinkedIn URL, use Fresh API for detailed info
+    const freshResult = await searchLinkedInByURLFresh(business.linkedinUrl);
+
+    if (freshResult.success) {
+      linkedinData = freshResult.companyData;
+
+      await prisma.business.update({
+        where: { id: businessId },
+        data: {
+          companySize: linkedinData?.companySize || business.companySize,
+          industry: linkedinData?.industry || business.industry,
+          description: linkedinData?.description || business.description,
+          foundedYear: linkedinData?.foundedYear || business.foundedYear,
+        },
+      });
+
+      await prisma.apiUsageLog.create({
+        data: {
+          service: 'linkedin_fresh_api',
+          businessId,
+          requestType: 'company_details_by_url',
+          success: true,
+          estimatedCost: 0.01,
+          responseData: linkedinData,
+        },
+      });
+
+      return {
+        success: true,
+        service: 'linkedin',
+        data: linkedinData,
+      };
+    }
+
+    // Fallback to the old method
     const detailsResult = await getLinkedInCompanyDetails(business.linkedinUrl);
 
     if (detailsResult.success) {
