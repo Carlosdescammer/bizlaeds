@@ -28,6 +28,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import {
+  calculateLeadScore,
+  getTimingRecommendation,
+  generateBusinessInsights,
+  getRecommendedActions,
+  getTalkingPoints,
+} from '@/lib/lead-scoring';
 
 type Business = {
   id: string;
@@ -317,6 +324,220 @@ export default function BusinessDetailPage() {
                 />
               </div>
             )}
+
+            {/* Google Photos Gallery */}
+            {business.googlePhotosData && Array.isArray(business.googlePhotosData) && business.googlePhotosData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-xl">📸</span>
+                    Google Photos ({business.googlePhotosData.length})
+                  </CardTitle>
+                  <CardDescription>Professional photos from Google Places</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {business.googlePhotosData.slice(0, 9).map((photo: any, idx: number) => (
+                      <div key={idx} className="aspect-video rounded-lg overflow-hidden border border-border bg-muted">
+                        <img
+                          src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`}
+                          alt={`${business.businessName} photo ${idx + 1}`}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                          onClick={() => window.open(`https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photo_reference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`, '_blank')}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {business.googlePhotosData.length > 9 && (
+                    <p className="text-sm text-muted-foreground mt-4 text-center">
+                      +{business.googlePhotosData.length - 9} more photos available
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Business Intelligence Card */}
+            {(() => {
+              const leadScore = calculateLeadScore(business);
+              const timing = getTimingRecommendation(business);
+              const insights = generateBusinessInsights(business);
+              const actions = getRecommendedActions(business, timing);
+              const talkingPoints = getTalkingPoints(business);
+
+              return (
+                <Card className="border-2">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="text-2xl">🎯</span>
+                        Lead Intelligence
+                      </CardTitle>
+                      <Badge className={`${leadScore.color} border px-3 py-1`}>
+                        {leadScore.label}: {leadScore.total}/100
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Contact Readiness */}
+                    <div>
+                      <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Contact Readiness
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className={`p-3 rounded-lg border ${business.email ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className="flex items-center gap-2">
+                            <Mail className={`w-4 h-4 ${business.email ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className={`text-sm font-medium ${business.email ? 'text-green-900' : 'text-gray-500'}`}>
+                              {business.email ? 'Email ✓' : 'No Email'}
+                            </span>
+                          </div>
+                          {business.email && (
+                            <p className="text-xs text-green-700 mt-1 truncate">{business.email}</p>
+                          )}
+                        </div>
+
+                        <div className={`p-3 rounded-lg border ${business.phone ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className="flex items-center gap-2">
+                            <Phone className={`w-4 h-4 ${business.phone ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className={`text-sm font-medium ${business.phone ? 'text-green-900' : 'text-gray-500'}`}>
+                              {business.phone ? 'Phone ✓' : 'No Phone'}
+                            </span>
+                          </div>
+                          {business.phone && (
+                            <p className="text-xs text-green-700 mt-1">{business.phone}</p>
+                          )}
+                        </div>
+
+                        <div className={`p-3 rounded-lg border ${business.website ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className="flex items-center gap-2">
+                            <Globe className={`w-4 h-4 ${business.website ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className={`text-sm font-medium ${business.website ? 'text-green-900' : 'text-gray-500'}`}>
+                              {business.website ? 'Website ✓' : 'No Website'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Business Strength */}
+                    {(business.googleRating || business.googleBusinessHours || business.googlePriceLevel) && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
+                          <Star className="w-4 h-4" />
+                          Business Strength
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {business.googleRating && (
+                            <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                              <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                <span className="text-sm font-medium text-yellow-900">
+                                  {business.googleRating.toFixed(1)} Stars
+                                </span>
+                              </div>
+                              {business.googleReviewCount && (
+                                <p className="text-xs text-yellow-700 mt-1">{business.googleReviewCount} reviews</p>
+                              )}
+                            </div>
+                          )}
+
+                          {business.googleBusinessHours && (
+                            <div className={`p-3 rounded-lg border ${
+                              timing.status === 'open'
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-red-50 border-red-200'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <Clock className={`w-4 h-4 ${timing.statusColor}`} />
+                                <span className={`text-sm font-medium ${
+                                  timing.status === 'open' ? 'text-green-900' : 'text-red-900'
+                                }`}>
+                                  {timing.message}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {business.googlePriceLevel && (
+                            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="w-4 h-4 text-blue-600" />
+                                <span className="text-sm font-medium text-blue-900">
+                                  {'$'.repeat(business.googlePriceLevel)} Pricing
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI Insights */}
+                    {insights.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          AI Insights
+                        </h4>
+                        <div className="space-y-2">
+                          {insights.map((insight, idx) => (
+                            <div
+                              key={idx}
+                              className={`p-3 rounded-lg border text-sm ${
+                                insight.type === 'positive'
+                                  ? 'bg-green-50 border-green-200 text-green-900'
+                                  : insight.type === 'negative'
+                                  ? 'bg-red-50 border-red-200 text-red-900'
+                                  : 'bg-blue-50 border-blue-200 text-blue-900'
+                              }`}
+                            >
+                              <span className="mr-2">{insight.icon}</span>
+                              {insight.text}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recommended Actions */}
+                    {actions.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          Recommended Actions
+                        </h4>
+                        <div className="space-y-2">
+                          {actions.map((action, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-sm text-foreground">
+                              <span className="text-primary mt-0.5">•</span>
+                              <span>{action}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Talking Points */}
+                    {talkingPoints.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
+                          💬 Talking Points
+                        </h4>
+                        <div className="space-y-2">
+                          {talkingPoints.map((point, idx) => (
+                            <div key={idx} className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+                              <p className="text-sm text-purple-900 italic">{point}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Google Places Info Card */}
             {(business.googleRating || business.googleBusinessHours || business.googlePriceLevel) && (
