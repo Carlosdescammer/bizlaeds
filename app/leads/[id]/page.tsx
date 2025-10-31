@@ -399,15 +399,15 @@ export default function BusinessDetailPage() {
             )}
 
             {/* Tabs */}
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="border-b border-gray-200">
+            <div className="bg-card rounded-lg shadow-md border">
+              <div className="border-b border-border">
                 <nav className="flex -mb-px">
                   <button
                     onClick={() => setActiveTab('details')}
                     className={`px-6 py-3 border-b-2 font-medium text-sm ${
                       activeTab === 'details'
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Details
@@ -416,8 +416,8 @@ export default function BusinessDetailPage() {
                     onClick={() => setActiveTab('email')}
                     className={`px-6 py-3 border-b-2 font-medium text-sm ${
                       activeTab === 'email'
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     Email
