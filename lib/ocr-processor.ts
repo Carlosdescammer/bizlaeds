@@ -219,11 +219,11 @@ export async function processBusinessCard(
     const parsedData = parseBusinessCardText(extractionResult.text);
 
     // Validate that we got at least some useful data
-    if (!parsedData.businessName && !parsedData.email && !parsedData.phone) {
+    if (!parsedData || (!parsedData.businessName && !parsedData.email && !parsedData.phone)) {
       return {
         success: false,
         error: 'Could not extract sufficient business information from the image',
-        extractedData: parsedData,
+        extractedData: parsedData || {},
       };
     }
 
