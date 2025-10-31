@@ -258,9 +258,9 @@ export async function enrichBusiness(
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 
 /**
- * Search for company on LinkedIn using RapidAPI
+ * Search for company on LinkedIn by domain using RapidAPI
  */
-export async function searchLinkedIn(companyName: string): Promise<{
+export async function searchLinkedInByDomain(domain: string): Promise<{
   success: boolean;
   linkedinUrl?: string;
   companyData?: any;
@@ -274,12 +274,12 @@ export async function searchLinkedIn(companyName: string): Promise<{
   }
 
   try {
-    // Using RapidAPI's LinkedIn Company Search
+    // Using RapidAPI's Real-Time LinkedIn Scraper - Get Company By Domain
     const response = await axios.get(
-      'https://linkedin-data-api.p.rapidapi.com/search-companies',
+      'https://linkedin-data-api.p.rapidapi.com/get-company-by-domain',
       {
         params: {
-          keywords: companyName,
+          domain: domain,
         },
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
@@ -288,38 +288,54 @@ export async function searchLinkedIn(companyName: string): Promise<{
       }
     );
 
-    const companies = response.data?.data || [];
+    const company = response.data?.data || response.data;
 
-    if (companies.length === 0) {
+    if (!company || !company.name) {
       return {
         success: false,
-        error: 'No LinkedIn company found',
+        error: 'No LinkedIn company found for this domain',
       };
     }
 
-    // Get the first (most relevant) result
-    const company = companies[0];
-
     return {
       success: true,
-      linkedinUrl: company.url || `https://www.linkedin.com/company/${company.id}`,
+      linkedinUrl: company.url || company.linkedin_url || `https://www.linkedin.com/company/${company.universalName}`,
       companyData: {
         name: company.name,
-        description: company.tagline,
+        description: company.description || company.tagline,
         industry: company.industry,
-        companySize: company.company_size_on_linkedin,
-        headquarters: company.hq?.city,
-        website: company.website,
-        followerCount: company.follower_count,
+        companySize: company.staffCount || company.companySize,
+        headquarters: company.headquarter?.city || company.headquarters,
+        website: company.website || company.websiteUrl,
+        followerCount: company.followersCount || company.follower_count,
+        foundedYear: company.foundedYear,
+        specialties: company.specialities || [],
       },
     };
   } catch (error: any) {
-    console.error('LinkedIn search error:', error);
+    console.error('LinkedIn search by domain error:', error);
     return {
       success: false,
       error: error.response?.data?.message || error.message,
     };
   }
+}
+
+/**
+ * Legacy function for backwards compatibility - now uses domain search
+ */
+export async function searchLinkedIn(companyName: string): Promise<{
+  success: boolean;
+  linkedinUrl?: string;
+  companyData?: any;
+  error?: string;
+}> {
+  // For backwards compatibility, try to extract domain from company name
+  // or return error asking for domain
+  return {
+    success: false,
+    error: 'Please use searchLinkedInByDomain with a company domain instead',
+  };
 }
 
 /**
@@ -408,9 +424,26 @@ export async function enrichWithLinkedIn(
 
   let linkedinData;
 
+  // Extract domain from website or email
+  let domain: string | null = null;
+
+  if (business.website) {
+    try {
+      let url = business.website;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+      domain = new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      domain = null;
+    }
+  } else if (business.email) {
+    domain = business.email.split('@')[1];
+  }
+
   // Try to find LinkedIn profile if we don't have one
-  if (!business.linkedinUrl && business.businessName) {
-    const searchResult = await searchLinkedIn(business.businessName);
+  if (!business.linkedinUrl && domain) {
+    const searchResult = await searchLinkedInByDomain(domain);
 
     if (searchResult.success) {
       linkedinData = searchResult.companyData;
@@ -424,6 +457,7 @@ export async function enrichWithLinkedIn(
           industry: linkedinData?.industry || business.industry,
           description: linkedinData?.description || business.description,
           website: linkedinData?.website || business.website,
+          foundedYear: linkedinData?.foundedYear || business.foundedYear,
         },
       });
 
@@ -432,7 +466,7 @@ export async function enrichWithLinkedIn(
         data: {
           service: 'linkedin_rapidapi',
           businessId,
-          requestType: 'company_search',
+          requestType: 'company_search_by_domain',
           success: true,
           estimatedCost: 0.01,
           responseData: linkedinData,
@@ -499,7 +533,7 @@ export async function enrichWithLinkedIn(
     success: false,
     service: 'linkedin',
     data: null,
-    error: 'No business name or LinkedIn URL available',
+    error: 'No domain (from website/email) or LinkedIn URL available for enrichment',
   };
 }
 
