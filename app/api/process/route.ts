@@ -174,15 +174,16 @@ IMPORTANT:
       const businessState = sharedState || businessData.state;
       const businessZipCode = sharedZipCode || businessData.zip_code;
 
-      // Enrich with Google Maps (only if we have an address)
-      let googleData = {};
+      // Enrich with Google Maps Place Search + Details
+      let googleData: any = {};
       if (businessData.business_name && fullAddress) {
         try {
           const searchQuery = businessData.suite_number
             ? `${businessData.business_name} Suite ${businessData.suite_number} ${fullAddress}`
             : `${businessData.business_name} ${fullAddress}`;
 
-          const mapsResponse = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
+          // Step 1: Find Place (Text Search)
+          const findPlaceResponse = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
             params: {
               input: searchQuery,
               inputtype: 'textquery',
@@ -193,13 +194,59 @@ IMPORTANT:
 
           await logApiUsage('google_maps', null, 0.005, true);
 
-          if (mapsResponse.data.candidates && mapsResponse.data.candidates[0]) {
-            const place = mapsResponse.data.candidates[0];
+          if (findPlaceResponse.data.candidates && findPlaceResponse.data.candidates[0]) {
+            const place = findPlaceResponse.data.candidates[0];
+            const placeId = place.place_id;
+
             googleData = {
-              googlePlaceId: place.place_id,
+              googlePlaceId: placeId,
               latitude: place.geometry?.location?.lat,
               longitude: place.geometry?.location?.lng,
+              formattedAddress: place.formatted_address,
             };
+
+            // Step 2: Get Place Details (rich information)
+            try {
+              const detailsResponse = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
+                params: {
+                  place_id: placeId,
+                  fields: 'name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,price_level,opening_hours,photos,reviews,types',
+                  key: process.env.GOOGLE_MAPS_API_KEY,
+                },
+              });
+
+              await logApiUsage('google_maps', null, 0.017, true); // Place Details costs more
+
+              const details = detailsResponse.data.result;
+              if (details) {
+                googleData.googleRating = details.rating || null;
+                googleData.googleReviewCount = details.user_ratings_total || null;
+                googleData.googlePriceLevel = details.price_level || null;
+                googleData.googleBusinessHours = details.opening_hours || null;
+                googleData.googleEnrichedAt = new Date();
+
+                // Store photo references (up to 5)
+                if (details.photos && details.photos.length > 0) {
+                  googleData.googlePhotosData = details.photos.slice(0, 5).map((photo: any) => ({
+                    photoReference: photo.photo_reference,
+                    width: photo.width,
+                    height: photo.height,
+                    attributions: photo.html_attributions,
+                  }));
+                }
+
+                // Update contact info if missing
+                if (!businessData.phone && details.formatted_phone_number) {
+                  businessData.phone = details.formatted_phone_number;
+                }
+                if (!businessData.website && details.website) {
+                  businessData.website = details.website;
+                }
+              }
+            } catch (detailsError: any) {
+              console.error('Google Places Details error:', detailsError);
+              await logApiUsage('google_maps', null, 0.017, false, detailsError.message);
+            }
           }
         } catch (error: any) {
           console.error('Google Maps error:', error);

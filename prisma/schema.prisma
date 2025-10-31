@@ -27,6 +27,15 @@ model Business {
   longitude          Decimal?  @db.Decimal(11, 8)
   googlePlaceId      String?   @map("google_place_id") @db.VarChar(255)
 
+  // Google Places Details API fields
+  googleRating       Decimal?  @map("google_rating") @db.Decimal(2, 1)
+  googleReviewCount  Int?      @map("google_review_count")
+  googlePriceLevel   Int?      @map("google_price_level")
+  googleBusinessHours Json?    @map("google_business_hours") @db.JsonB
+  googlePhotosData   Json?     @map("google_photos_data") @db.JsonB
+  formattedAddress   String?   @map("formatted_address") @db.Text
+  googleEnrichedAt   DateTime? @map("google_enriched_at") @db.Timestamp(6)
+
   photoUrl           String?   @map("photo_url") @db.Text
   telegramMessageId  BigInt?   @map("telegram_message_id")
   telegramUserId     BigInt?   @map("telegram_user_id")
