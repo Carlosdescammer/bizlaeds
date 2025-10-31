@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { Camera, Upload, Loader2, CheckCircle2, XCircle, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import imageCompression from 'browser-image-compression';
-import { useUser, useStackApp } from '@stackframe/stack';
+import { useUser } from '@stackframe/stack';
 
-export default function Home() {
+function HomeContent() {
   const user = useUser();
-  const app = useStackApp();
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -324,5 +323,17 @@ export default function Home() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
