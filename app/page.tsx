@@ -115,7 +115,7 @@ export default function Home() {
               </Link>
               {user ? (
                 <button
-                  onClick={() => app.signOut()}
+                  onClick={() => user.signOut()}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium"
                 >
                   <LogOut className="w-4 h-4" />
