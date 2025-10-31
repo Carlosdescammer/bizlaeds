@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, AlertTriangle, AlertCircle, CheckCircle, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import { ModeToggle } from '@/components/mode-toggle';
 
 type ServiceUsage = {
   service: string;
@@ -88,22 +89,25 @@ export default function UsagePage() {
 
   if (loading || !usageData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-6 h-6" />
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">API Usage Monitor</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="w-6 h-6" />
+              </Link>
+              <h1 className="text-2xl font-bold text-foreground">API Usage Monitor</h1>
+            </div>
+            <ModeToggle />
           </div>
         </div>
       </header>
@@ -111,49 +115,49 @@ export default function UsagePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-card rounded-lg shadow-md p-6 border">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="font-medium text-gray-600">Total Cost</h3>
+              <h3 className="font-medium text-muted-foreground">Total Cost</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-3xl font-bold text-foreground">
               ${(usageData?.totals?.cost || 0).toFixed(2)}
             </p>
-            <p className="text-sm text-gray-500 mt-1">This month</p>
+            <p className="text-sm text-muted-foreground mt-1">This month</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-card rounded-lg shadow-md p-6 border">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-indigo-600" />
               </div>
-              <h3 className="font-medium text-gray-600">Total Requests</h3>
+              <h3 className="font-medium text-muted-foreground">Total Requests</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-3xl font-bold text-foreground">
               {usageData?.totals?.requests || 0}
             </p>
-            <p className="text-sm text-gray-500 mt-1">API calls made</p>
+            <p className="text-sm text-muted-foreground mt-1">API calls made</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-card rounded-lg shadow-md p-6 border">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Activity className="w-5 h-5 text-purple-600" />
               </div>
-              <h3 className="font-medium text-gray-600">Active Alerts</h3>
+              <h3 className="font-medium text-muted-foreground">Active Alerts</h3>
             </div>
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-3xl font-bold text-foreground">
               {usageData?.alerts?.length || 0}
             </p>
-            <p className="text-sm text-gray-500 mt-1">Last 7 days</p>
+            <p className="text-sm text-muted-foreground mt-1">Last 7 days</p>
           </div>
         </div>
 
         {/* Service Usage */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Service Usage</h2>
+        <div className="bg-card rounded-lg shadow-md p-6 mb-8 border">
+          <h2 className="text-xl font-bold text-foreground mb-6">Service Usage</h2>
 
           <div className="space-y-6">
             {(usageData?.services || []).map((service: ServiceUsage) => (
@@ -257,8 +261,8 @@ export default function UsagePage() {
 
         {/* Recent Alerts */}
         {usageData?.alerts && Array.isArray(usageData.alerts) && usageData.alerts.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Alerts</h2>
+          <div className="bg-card rounded-lg shadow-md p-6 mb-8 border">
+            <h2 className="text-xl font-bold text-foreground mb-4">Recent Alerts</h2>
             <div className="space-y-3">
               {usageData.alerts.map((alert: any) => (
                 <div
@@ -289,8 +293,8 @@ export default function UsagePage() {
 
         {/* Recent Activity Log */}
         {usageData?.recentLogs && Array.isArray(usageData.recentLogs) && usageData.recentLogs.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent API Activity</h2>
+          <div className="bg-card rounded-lg shadow-md p-6 border">
+            <h2 className="text-xl font-bold text-foreground mb-4">Recent API Activity</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
