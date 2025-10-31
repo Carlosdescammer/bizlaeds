@@ -436,7 +436,7 @@ export default function BusinessDetailPage() {
                               <div className="flex items-center gap-2">
                                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                                 <span className="text-sm font-medium text-yellow-900">
-                                  {business.googleRating.toFixed(1)} Stars
+                                  {Number(business.googleRating).toFixed(1)} Stars
                                 </span>
                               </div>
                               {business.googleReviewCount && (

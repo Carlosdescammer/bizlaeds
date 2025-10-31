@@ -32,11 +32,13 @@ export interface BusinessInsight {
 }
 
 export function calculateLeadScore(business: any): LeadScore {
+  const rating = business.googleRating ? Number(business.googleRating) : 0;
+
   const breakdown = {
     hasEmail: business.email ? 20 : 0,
     hasPhone: business.phone ? 20 : 0,
     hasWebsite: business.website ? 15 : 0,
-    hasGoodRating: (business.googleRating && business.googleRating >= 4.0) ? 15 : 0,
+    hasGoodRating: (rating && rating >= 4.0) ? 15 : 0,
     hasManyReviews: (business.googleReviewCount && business.googleReviewCount > 10) ? 10 : 0,
     hasBusinessHours: business.googleBusinessHours ? 10 : 0,
     isCurrentlyOpen: business.googleBusinessHours?.open_now ? 5 : 0,
@@ -113,22 +115,23 @@ export function generateBusinessInsights(business: any): BusinessInsight[] {
 
   // Rating insights
   if (business.googleRating) {
-    if (business.googleRating >= 4.5) {
+    const rating = Number(business.googleRating);
+    if (rating >= 4.5) {
       insights.push({
         icon: '⭐',
-        text: `Excellent ${business.googleRating.toFixed(1)}-star rating suggests high quality service`,
+        text: `Excellent ${rating.toFixed(1)}-star rating suggests high quality service`,
         type: 'positive',
       });
-    } else if (business.googleRating >= 4.0) {
+    } else if (rating >= 4.0) {
       insights.push({
         icon: '⭐',
-        text: `Good ${business.googleRating.toFixed(1)}-star rating indicates reliable service`,
+        text: `Good ${rating.toFixed(1)}-star rating indicates reliable service`,
         type: 'positive',
       });
-    } else if (business.googleRating < 3.5) {
+    } else if (rating < 3.5) {
       insights.push({
         icon: '⚠️',
-        text: `Lower rating (${business.googleRating.toFixed(1)}) may indicate service issues`,
+        text: `Lower rating (${rating.toFixed(1)}) may indicate service issues`,
         type: 'negative',
       });
     }
@@ -263,8 +266,11 @@ export function getRecommendedActions(business: any, timing: TimingRecommendatio
 export function getTalkingPoints(business: any): string[] {
   const points: string[] = [];
 
-  if (business.googleRating && business.googleRating >= 4.0) {
-    points.push(`"Noticed your ${business.googleRating}-star rating - clearly your customers value your service"`);
+  if (business.googleRating) {
+    const rating = Number(business.googleRating);
+    if (rating >= 4.0) {
+      points.push(`"Noticed your ${rating.toFixed(1)}-star rating - clearly your customers value your service"`);
+    }
   }
 
   if (business.address) {
