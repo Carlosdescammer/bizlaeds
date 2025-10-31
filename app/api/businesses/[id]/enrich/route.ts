@@ -32,7 +32,7 @@ export async function POST(
   try {
     const { id: businessId } = await params;
     const body = await request.json();
-    const { action } = body; // 'google' or 'hunter'
+    const { action } = body; // 'google', 'hunter', 'clearbit', 'apollo', 'yelp', or 'process'
 
     const business = await prisma.business.findUnique({
       where: { id: businessId },
@@ -40,6 +40,88 @@ export async function POST(
 
     if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    }
+
+    // New action: Process business with data quality checks
+    if (action === 'process') {
+      const { processBusinessData } = await import('@/lib/business-processor');
+      const processed = await processBusinessData(business, businessId);
+
+      const updatedBusiness = await prisma.business.update({
+        where: { id: businessId },
+        data: processed as any,
+      });
+
+      return NextResponse.json({
+        success: true,
+        business: {
+          ...updatedBusiness,
+          telegramMessageId: updatedBusiness.telegramMessageId?.toString(),
+          telegramUserId: updatedBusiness.telegramUserId?.toString(),
+        },
+        message: 'Business processed with data quality checks',
+      });
+    }
+
+    // New action: Enrich with Clearbit or Apollo
+    if (action === 'clearbit' || action === 'apollo') {
+      const { enrichBusiness } = await import('@/lib/enrichment-apis');
+      const result = await enrichBusiness(businessId, action);
+
+      if (result.success) {
+        const updatedBusiness = await prisma.business.findUnique({
+          where: { id: businessId },
+        });
+
+        return NextResponse.json({
+          success: true,
+          business: {
+            ...updatedBusiness,
+            telegramMessageId: updatedBusiness?.telegramMessageId?.toString(),
+            telegramUserId: updatedBusiness?.telegramUserId?.toString(),
+          },
+          enrichmentData: result.data,
+        });
+      } else {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+    }
+
+    // New action: Enrich with Yelp
+    if (action === 'yelp') {
+      const { enrichWithYelp } = await import('@/lib/enrichment-apis');
+
+      if (!business.businessName) {
+        return NextResponse.json({ error: 'Business name is required' }, { status: 400 });
+      }
+
+      const location = business.city && business.state
+        ? `${business.city}, ${business.state}`
+        : business.address || '';
+
+      if (!location) {
+        return NextResponse.json({ error: 'Location is required for Yelp enrichment' }, { status: 400 });
+      }
+
+      const result = await enrichWithYelp(business.businessName, location);
+
+      if (result.success && result.data) {
+        const updatedBusiness = await prisma.business.update({
+          where: { id: businessId },
+          data: result.data,
+        });
+
+        return NextResponse.json({
+          success: true,
+          business: {
+            ...updatedBusiness,
+            telegramMessageId: updatedBusiness.telegramMessageId?.toString(),
+            telegramUserId: updatedBusiness.telegramUserId?.toString(),
+          },
+        });
+      } else {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
     }
 
     if (action === 'google') {

@@ -36,6 +36,58 @@ model Business {
   formattedAddress   String?   @map("formatted_address") @db.Text
   googleEnrichedAt   DateTime? @map("google_enriched_at") @db.Timestamp(6)
 
+  // Data Quality & Deduplication
+  emailHash          String?   @map("email_hash") @db.VarChar(64)
+  phoneHash          String?   @map("phone_hash") @db.VarChar(64)
+  domainHash         String?   @map("domain_hash") @db.VarChar(64)
+  isDuplicate        Boolean   @default(false) @map("is_duplicate")
+  duplicateOfId      String?   @map("duplicate_of_id") @db.Uuid
+  normalizedPhone    String?   @map("normalized_phone") @db.VarChar(50)
+  normalizedEmail    String?   @map("normalized_email") @db.VarChar(255)
+
+  // Email Validation
+  emailValid         Boolean?  @map("email_valid")
+  emailValidatedAt   DateTime? @map("email_validated_at") @db.Timestamp(6)
+  emailBounced       Boolean   @default(false) @map("email_bounced")
+  emailBouncedAt     DateTime? @map("email_bounced_at") @db.Timestamp(6)
+  isDisposableEmail  Boolean   @default(false) @map("is_disposable_email")
+  isGenericEmail     Boolean   @default(false) @map("is_generic_email")
+
+  // Domain Validation
+  domainValid        Boolean?  @map("domain_valid")
+  domainActive       Boolean?  @map("domain_active")
+  domainValidatedAt  DateTime? @map("domain_validated_at") @db.Timestamp(6)
+
+  // Industry & Tagging
+  industry           String?   @db.VarChar(100)
+  tags               String[]  @default([])
+  serviceSegment     String?   @map("service_segment") @db.VarChar(100)
+  relevanceScore     Int?      @default(0) @map("relevance_score")
+
+  // Company Enrichment (Clearbit/Apollo)
+  companySize        String?   @map("company_size") @db.VarChar(50)
+  companyRevenue     String?   @map("company_revenue") @db.VarChar(50)
+  foundedYear        Int?      @map("founded_year")
+  linkedinUrl        String?   @map("linkedin_url") @db.VarChar(500)
+  twitterHandle      String?   @map("twitter_handle") @db.VarChar(100)
+  facebookUrl        String?   @map("facebook_url") @db.VarChar(500)
+  enrichedByService  String?   @map("enriched_by_service") @db.VarChar(50)
+  enrichedAt         DateTime? @map("enriched_at") @db.Timestamp(6)
+
+  // Lead Status & Priority
+  leadPriority       String    @default("medium") @map("lead_priority") @db.VarChar(20)
+  leadStatus         String    @default("new") @map("lead_status") @db.VarChar(50)
+  lastContactedAt    DateTime? @map("last_contacted_at") @db.Timestamp(6)
+  nextFollowUpAt     DateTime? @map("next_follow_up_at") @db.Timestamp(6)
+
+  // Geographic & Campaign
+  geographicCluster  String?   @map("geographic_cluster") @db.VarChar(100)
+  campaignId         String?   @map("campaign_id") @db.VarChar(100)
+
+  // Data Source
+  dataSource         String?   @default("telegram") @map("data_source") @db.VarChar(50)
+  sourceUrl          String?   @map("source_url") @db.Text
+
   photoUrl           String?   @map("photo_url") @db.Text
   telegramMessageId  BigInt?   @map("telegram_message_id")
   telegramUserId     BigInt?   @map("telegram_user_id")
@@ -51,12 +103,20 @@ model Business {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   approvedAt         DateTime? @map("approved_at") @db.Timestamp(6)
+  archivedAt         DateTime? @map("archived_at") @db.Timestamp(6)
 
   photos             Photo[]
   emailCampaigns     EmailCampaign[]
   apiUsageLogs       ApiUsageLog[]
+  leadAlerts         LeadAlert[]
 
   @@unique([businessName, address])
+  @@index([emailHash])
+  @@index([phoneHash])
+  @@index([domainHash])
+  @@index([leadPriority, leadStatus])
+  @@index([industry])
+  @@index([geographicCluster])
   @@map("businesses")
 }
 
@@ -174,4 +234,21 @@ model UsageAlert {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
 
   @@map("usage_alerts")
+}
+
+model LeadAlert {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  businessId         String    @map("business_id") @db.Uuid
+  alertType          String    @map("alert_type") @db.VarChar(50)
+  priority           String    @db.VarChar(20)
+  message            String    @db.Text
+  telegramSent       Boolean   @default(false) @map("telegram_sent")
+  telegramSentAt     DateTime? @map("telegram_sent_at") @db.Timestamp(6)
+  emailSent          Boolean   @default(false) @map("email_sent")
+  emailSentAt        DateTime? @map("email_sent_at") @db.Timestamp(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  business           Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("lead_alerts")
 }
