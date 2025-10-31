@@ -27,10 +27,10 @@ async function logApiUsage(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: businessId } = params;
+    const { id: businessId } = await params;
     const body = await request.json();
     const { action } = body; // 'google' or 'hunter'
 
