@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Camera, Upload, Loader2, CheckCircle2, XCircle, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import imageCompression from 'browser-image-compression';
+import { useUser, useStackApp } from '@stackframe/stack';
 
 export default function Home() {
+  const user = useUser();
+  const app = useStackApp();
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -97,7 +100,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Business Leads</h1>
-            <nav className="flex gap-4">
+            <nav className="flex gap-4 items-center">
               <Link
                 href="/leads"
                 className="text-gray-600 hover:text-gray-900 font-medium"
@@ -110,6 +113,22 @@ export default function Home() {
               >
                 Usage
               </Link>
+              {user ? (
+                <button
+                  onClick={() => app.signOut()}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              ) : (
+                <Link
+                  href="/auth/signin"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Sign In
+                </Link>
+              )}
             </nav>
           </div>
         </div>

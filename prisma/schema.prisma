@@ -11,6 +11,7 @@ datasource db {
 
 model Business {
   id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId             String?   @map("user_id") @db.VarChar(255)
   businessName       String    @map("business_name") @db.VarChar(255)
   businessType       String?   @map("business_type") @db.VarChar(100)
   address            String?   @db.Text
