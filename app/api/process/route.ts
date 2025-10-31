@@ -254,11 +254,19 @@ IMPORTANT:
         }
       }
 
-      // Find email with Hunter.io (only for businesses with websites)
+      // Find email with Hunter.io (use website from AI or Google Places)
       let hunterEmail = null;
-      if (businessData.website) {
+      const websiteToCheck = businessData.website; // Already updated by Google Places if found
+
+      if (websiteToCheck) {
         try {
-          const domain = new URL(businessData.website).hostname;
+          // Validate and parse URL
+          let websiteUrl = websiteToCheck;
+          if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+            websiteUrl = 'https://' + websiteUrl;
+          }
+
+          const domain = new URL(websiteUrl).hostname;
 
           const hunterResponse = await axios.get('https://api.hunter.io/v2/domain-search', {
             params: {
@@ -276,6 +284,7 @@ IMPORTANT:
         } catch (error: any) {
           console.error('Hunter.io error:', error);
           await logApiUsage('hunter_io', null, 0.001, false, error.message);
+          // Continue processing even if Hunter.io fails
         }
       }
 

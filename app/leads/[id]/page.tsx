@@ -16,7 +16,15 @@ import {
   Phone,
   Globe,
   Calendar,
+  Star,
+  Clock,
+  DollarSign,
+  MessageSquare,
 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 
 type Business = {
   id: string;
@@ -35,6 +43,12 @@ type Business = {
   approvedAt: string | null;
   photos: any[];
   emailCampaigns: any[];
+  // Google Places fields
+  googleRating: number | null;
+  googleReviewCount: number | null;
+  googlePriceLevel: number | null;
+  googleBusinessHours: any;
+  formattedAddress: string | null;
 };
 
 export default function BusinessDetailPage() {
@@ -225,6 +239,86 @@ export default function BusinessDetailPage() {
                   className="w-full h-auto"
                 />
               </div>
+            )}
+
+            {/* Google Places Info Card */}
+            {(business.googleRating || business.googleBusinessHours || business.googlePriceLevel) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-blue-600" />
+                    Google Places Information
+                  </CardTitle>
+                  {business.formattedAddress && (
+                    <CardDescription>{business.formattedAddress}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {/* Rating */}
+                    {business.googleRating && (
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-2xl font-bold">{Number(business.googleRating).toFixed(1)}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <MessageSquare className="w-3 h-3" />
+                          {business.googleReviewCount || 0} reviews
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Price Level */}
+                    {business.googlePriceLevel && (
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1 mb-1">
+                          <DollarSign className="w-4 h-4 text-green-600" />
+                          <span className="text-lg font-semibold text-green-600">
+                            {'$'.repeat(business.googlePriceLevel)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">Price level</span>
+                      </div>
+                    )}
+
+                    {/* Business Hours Status */}
+                    {business.googleBusinessHours?.open_now !== undefined && (
+                      <div className="flex flex-col">
+                        <Badge
+                          variant={business.googleBusinessHours.open_now ? "default" : "secondary"}
+                          className="w-fit mb-1"
+                        >
+                          <Clock className="w-3 h-3 mr-1" />
+                          {business.googleBusinessHours.open_now ? 'Open Now' : 'Closed'}
+                        </Badge>
+                        <span className="text-xs text-gray-500">Current status</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Business Hours */}
+                  {business.googleBusinessHours?.weekday_text && (
+                    <>
+                      <Separator className="my-4" />
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          Business Hours
+                        </h4>
+                        <div className="grid gap-1 text-sm">
+                          {business.googleBusinessHours.weekday_text.map((day: string, idx: number) => (
+                            <div key={idx} className="flex justify-between">
+                              <span className="text-gray-600">{day.split(': ')[0]}:</span>
+                              <span className="font-medium">{day.split(': ')[1]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* Tabs */}
