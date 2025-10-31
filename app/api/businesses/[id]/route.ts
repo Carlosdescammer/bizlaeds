@@ -25,7 +25,18 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ business });
+    // Convert BigInt to string for JSON serialization
+    const serializedBusiness = {
+      ...business,
+      telegramMessageId: business.telegramMessageId?.toString(),
+      telegramUserId: business.telegramUserId?.toString(),
+      photos: business.photos.map(photo => ({
+        ...photo,
+        telegramMessageId: photo.telegramMessageId.toString(),
+      })),
+    };
+
+    return NextResponse.json({ business: serializedBusiness });
   } catch (error: any) {
     console.error('Get business error:', error);
     return NextResponse.json(
@@ -69,7 +80,14 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ success: true, business });
+    // Convert BigInt to string for JSON serialization
+    const serializedBusiness = {
+      ...business,
+      telegramMessageId: business.telegramMessageId?.toString(),
+      telegramUserId: business.telegramUserId?.toString(),
+    };
+
+    return NextResponse.json({ success: true, business: serializedBusiness });
   } catch (error: any) {
     console.error('Update business error:', error);
     return NextResponse.json(

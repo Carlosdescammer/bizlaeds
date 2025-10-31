@@ -44,8 +44,19 @@ export async function GET(request: NextRequest) {
       prisma.business.count({ where }),
     ]);
 
+    // Convert BigInt to string for JSON serialization
+    const serializedBusinesses = businesses.map(business => ({
+      ...business,
+      telegramMessageId: business.telegramMessageId?.toString(),
+      telegramUserId: business.telegramUserId?.toString(),
+      photos: business.photos.map(photo => ({
+        ...photo,
+        telegramMessageId: photo.telegramMessageId.toString(),
+      })),
+    }));
+
     return NextResponse.json({
-      businesses,
+      businesses: serializedBusinesses,
       total,
       limit,
       offset,
