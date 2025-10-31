@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Loader2, Upload, BarChart3 } from 'lucide-react';
+import { Upload, BarChart3 } from 'lucide-react';
 import { BusinessDataTable } from '@/components/business-data-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 
 type Business = {
   id: string;
@@ -67,7 +68,7 @@ export default function LeadsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
