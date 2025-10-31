@@ -252,26 +252,254 @@ export async function enrichBusiness(
 }
 
 // ============================================================================
-// LINKEDIN SCRAPING (Basic - requires LinkedIn API or scraping service)
+// LINKEDIN SCRAPING (via RapidAPI)
 // ============================================================================
 
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+
 /**
- * Search for company on LinkedIn (placeholder - requires LinkedIn API access)
+ * Search for company on LinkedIn using RapidAPI
  */
 export async function searchLinkedIn(companyName: string): Promise<{
   success: boolean;
   linkedinUrl?: string;
+  companyData?: any;
   error?: string;
 }> {
-  // Note: LinkedIn's official API requires partnership
-  // This is a placeholder for integration with services like:
-  // - PhantomBuster
-  // - Apify
-  // - RapidAPI LinkedIn scrapers
+  if (!RAPIDAPI_KEY) {
+    return {
+      success: false,
+      error: 'RapidAPI key not configured for LinkedIn search',
+    };
+  }
+
+  try {
+    // Using RapidAPI's LinkedIn Company Search
+    const response = await axios.get(
+      'https://linkedin-data-api.p.rapidapi.com/search-companies',
+      {
+        params: {
+          keywords: companyName,
+        },
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'linkedin-data-api.p.rapidapi.com',
+        },
+      }
+    );
+
+    const companies = response.data?.data || [];
+
+    if (companies.length === 0) {
+      return {
+        success: false,
+        error: 'No LinkedIn company found',
+      };
+    }
+
+    // Get the first (most relevant) result
+    const company = companies[0];
+
+    return {
+      success: true,
+      linkedinUrl: company.url || `https://www.linkedin.com/company/${company.id}`,
+      companyData: {
+        name: company.name,
+        description: company.tagline,
+        industry: company.industry,
+        companySize: company.company_size_on_linkedin,
+        headquarters: company.hq?.city,
+        website: company.website,
+        followerCount: company.follower_count,
+      },
+    };
+  } catch (error: any) {
+    console.error('LinkedIn search error:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message,
+    };
+  }
+}
+
+/**
+ * Get detailed company information from LinkedIn
+ */
+export async function getLinkedInCompanyDetails(linkedinUrl: string): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  if (!RAPIDAPI_KEY) {
+    return {
+      success: false,
+      error: 'RapidAPI key not configured',
+    };
+  }
+
+  try {
+    // Extract company username from URL
+    const companyUsername = linkedinUrl.split('/company/')[1]?.split('/')[0];
+
+    if (!companyUsername) {
+      return {
+        success: false,
+        error: 'Invalid LinkedIn URL',
+      };
+    }
+
+    const response = await axios.get(
+      'https://linkedin-data-api.p.rapidapi.com/get-company-details',
+      {
+        params: {
+          username: companyUsername,
+        },
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'linkedin-data-api.p.rapidapi.com',
+        },
+      }
+    );
+
+    const companyData = response.data?.data || response.data;
+
+    return {
+      success: true,
+      data: {
+        name: companyData.name,
+        description: companyData.description,
+        website: companyData.website,
+        industry: companyData.industry,
+        companySize: companyData.company_size || companyData.company_size_on_linkedin,
+        headquarters: companyData.hq,
+        foundedYear: companyData.founded?.year,
+        specialties: companyData.specialities || [],
+        followerCount: companyData.follower_count,
+        employeeCount: companyData.staff_count,
+      },
+    };
+  } catch (error: any) {
+    console.error('LinkedIn details error:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || error.message,
+    };
+  }
+}
+
+/**
+ * Enrich business with LinkedIn data
+ */
+export async function enrichWithLinkedIn(
+  businessId: string
+): Promise<EnrichmentResult> {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+  });
+
+  if (!business) {
+    return {
+      success: false,
+      service: 'linkedin',
+      data: null,
+      error: 'Business not found',
+    };
+  }
+
+  let linkedinData;
+
+  // Try to find LinkedIn profile if we don't have one
+  if (!business.linkedinUrl && business.businessName) {
+    const searchResult = await searchLinkedIn(business.businessName);
+
+    if (searchResult.success) {
+      linkedinData = searchResult.companyData;
+
+      // Update business with LinkedIn URL and data
+      await prisma.business.update({
+        where: { id: businessId },
+        data: {
+          linkedinUrl: searchResult.linkedinUrl,
+          companySize: linkedinData?.companySize || business.companySize,
+          industry: linkedinData?.industry || business.industry,
+          description: linkedinData?.description || business.description,
+          website: linkedinData?.website || business.website,
+        },
+      });
+
+      // Log API usage
+      await prisma.apiUsageLog.create({
+        data: {
+          service: 'linkedin_rapidapi',
+          businessId,
+          requestType: 'company_search',
+          success: true,
+          estimatedCost: 0.01,
+          responseData: linkedinData,
+        },
+      });
+
+      return {
+        success: true,
+        service: 'linkedin',
+        data: linkedinData,
+      };
+    } else {
+      return {
+        success: false,
+        service: 'linkedin',
+        data: null,
+        error: searchResult.error,
+      };
+    }
+  } else if (business.linkedinUrl) {
+    // We already have a LinkedIn URL, get detailed info
+    const detailsResult = await getLinkedInCompanyDetails(business.linkedinUrl);
+
+    if (detailsResult.success) {
+      linkedinData = detailsResult.data;
+
+      await prisma.business.update({
+        where: { id: businessId },
+        data: {
+          companySize: linkedinData?.companySize || business.companySize,
+          industry: linkedinData?.industry || business.industry,
+          description: linkedinData?.description || business.description,
+          foundedYear: linkedinData?.foundedYear || business.foundedYear,
+        },
+      });
+
+      await prisma.apiUsageLog.create({
+        data: {
+          service: 'linkedin_rapidapi',
+          businessId,
+          requestType: 'company_details',
+          success: true,
+          estimatedCost: 0.01,
+          responseData: linkedinData,
+        },
+      });
+
+      return {
+        success: true,
+        service: 'linkedin',
+        data: linkedinData,
+      };
+    } else {
+      return {
+        success: false,
+        service: 'linkedin',
+        data: null,
+        error: detailsResult.error,
+      };
+    }
+  }
 
   return {
     success: false,
-    error: 'LinkedIn integration not implemented - requires API partnership or scraping service',
+    service: 'linkedin',
+    data: null,
+    error: 'No business name or LinkedIn URL available',
   };
 }
 

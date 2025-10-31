@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import axios from 'axios';
 import { processBusinessData } from '@/lib/business-processor';
-import { enrichBusiness, enrichWithYelp } from '@/lib/enrichment-apis';
+import { enrichBusiness, enrichWithYelp, enrichWithLinkedIn } from '@/lib/enrichment-apis';
 
 // Helper function to log API usage
 async function logApiUsage(
@@ -34,7 +34,7 @@ export async function POST(
   try {
     const { id: businessId } = await params;
     const body = await request.json();
-    const { action } = body; // 'google', 'hunter', 'clearbit', 'apollo', 'yelp', or 'process'
+    const { action } = body; // 'google', 'hunter', 'clearbit', 'apollo', 'yelp', 'linkedin', or 'process'
 
     const business = await prisma.business.findUnique({
       where: { id: businessId },
@@ -116,6 +116,29 @@ export async function POST(
             telegramMessageId: updatedBusiness.telegramMessageId?.toString(),
             telegramUserId: updatedBusiness.telegramUserId?.toString(),
           },
+        });
+      } else {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+    }
+
+    // New action: Enrich with LinkedIn
+    if (action === 'linkedin') {
+      const result = await enrichWithLinkedIn(businessId);
+
+      if (result.success) {
+        const updatedBusiness = await prisma.business.findUnique({
+          where: { id: businessId },
+        });
+
+        return NextResponse.json({
+          success: true,
+          business: {
+            ...updatedBusiness,
+            telegramMessageId: updatedBusiness?.telegramMessageId?.toString(),
+            telegramUserId: updatedBusiness?.telegramUserId?.toString(),
+          },
+          enrichmentData: result.data,
         });
       } else {
         return NextResponse.json({ error: result.error }, { status: 400 });

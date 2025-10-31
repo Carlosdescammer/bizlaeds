@@ -36,6 +36,11 @@ model Business {
   formattedAddress   String?   @map("formatted_address") @db.Text
   googleEnrichedAt   DateTime? @map("google_enriched_at") @db.Timestamp(6)
 
+  // Yelp API fields
+  yelpRating         Decimal?  @map("yelp_rating") @db.Decimal(2, 1)
+  yelpReviewCount    Int?      @map("yelp_review_count")
+  yelpUrl            String?   @map("yelp_url") @db.VarChar(500)
+
   // Data Quality & Deduplication
   emailHash          String?   @map("email_hash") @db.VarChar(64)
   phoneHash          String?   @map("phone_hash") @db.VarChar(64)
@@ -68,6 +73,7 @@ model Business {
   companySize        String?   @map("company_size") @db.VarChar(50)
   companyRevenue     String?   @map("company_revenue") @db.VarChar(50)
   foundedYear        Int?      @map("founded_year")
+  description        String?   @db.Text
   linkedinUrl        String?   @map("linkedin_url") @db.VarChar(500)
   twitterHandle      String?   @map("twitter_handle") @db.VarChar(100)
   facebookUrl        String?   @map("facebook_url") @db.VarChar(500)
@@ -87,6 +93,12 @@ model Business {
   // Data Source
   dataSource         String?   @default("telegram") @map("data_source") @db.VarChar(50)
   sourceUrl          String?   @map("source_url") @db.Text
+
+  // Business Card OCR
+  businessCardImageUrl String? @map("business_card_image_url") @db.Text
+  ocrExtractedText   String?   @map("ocr_extracted_text") @db.Text
+  ocrProcessedAt     DateTime? @map("ocr_processed_at") @db.Timestamp(6)
+  contactName        String?   @map("contact_name") @db.VarChar(255)
 
   photoUrl           String?   @map("photo_url") @db.Text
   telegramMessageId  BigInt?   @map("telegram_message_id")
