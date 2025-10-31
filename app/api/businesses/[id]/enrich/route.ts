@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import axios from 'axios';
+import { processBusinessData } from '@/lib/business-processor';
+import { enrichBusiness, enrichWithYelp } from '@/lib/enrichment-apis';
 
 // Helper function to log API usage
 async function logApiUsage(
@@ -44,7 +46,6 @@ export async function POST(
 
     // New action: Process business with data quality checks
     if (action === 'process') {
-      const { processBusinessData } = await import('@/lib/business-processor');
       const processed = await processBusinessData(business, businessId);
 
       const updatedBusiness = await prisma.business.update({
@@ -65,7 +66,6 @@ export async function POST(
 
     // New action: Enrich with Clearbit or Apollo
     if (action === 'clearbit' || action === 'apollo') {
-      const { enrichBusiness } = await import('@/lib/enrichment-apis');
       const result = await enrichBusiness(businessId, action);
 
       if (result.success) {
@@ -89,8 +89,6 @@ export async function POST(
 
     // New action: Enrich with Yelp
     if (action === 'yelp') {
-      const { enrichWithYelp } = await import('@/lib/enrichment-apis');
-
       if (!business.businessName) {
         return NextResponse.json({ error: 'Business name is required' }, { status: 400 });
       }
