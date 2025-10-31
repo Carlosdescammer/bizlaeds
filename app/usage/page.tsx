@@ -167,7 +167,7 @@ export default function UsagePage() {
                       </h3>
                       <p className="text-sm text-gray-600">
                         {service.requestsCount} requests
-                        {service.estimatedCost > 0 && ` • $${service.estimatedCost.toFixed(2)}`}
+                        {service.estimatedCost > 0 && ` • $${Number(service.estimatedCost).toFixed(2)}`}
                       </p>
                     </div>
                   </div>
@@ -176,7 +176,7 @@ export default function UsagePage() {
                       service.status
                     )}`}
                   >
-                    {service.percentage.toFixed(1)}%
+                    {Number(service.percentage).toFixed(1)}%
                   </span>
                 </div>
 
@@ -212,12 +212,12 @@ export default function UsagePage() {
                 <div className="flex justify-between text-sm text-gray-600 mt-2">
                   <span>
                     {service.service === 'openai'
-                      ? `$${service.estimatedCost.toFixed(2)} of $${service.limit} budget`
+                      ? `$${Number(service.estimatedCost).toFixed(2)} of $${service.limit} budget`
                       : `${service.requestsCount} of ${service.limit} requests`}
                   </span>
                   <span>
                     {service.service === 'openai'
-                      ? `$${(service.limit - service.estimatedCost).toFixed(2)} remaining`
+                      ? `$${Number(service.limit - Number(service.estimatedCost)).toFixed(2)} remaining`
                       : `${service.limit - service.requestsCount} remaining`}
                   </span>
                 </div>
@@ -342,7 +342,7 @@ export default function UsagePage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-900 text-right">
-                        ${log.estimatedCost.toFixed(3)}
+                        ${Number(log.estimatedCost).toFixed(3)}
                       </td>
                     </tr>
                   ))}
