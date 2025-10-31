@@ -20,7 +20,10 @@ import {
   Clock,
   DollarSign,
   MessageSquare,
+  RefreshCw,
+  Search,
 } from 'lucide-react';
+import { ModeToggle } from '@/components/mode-toggle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,6 +71,10 @@ export default function BusinessDetailPage() {
   const [generatingEmail, setGeneratingEmail] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState<any>(null);
+
+  // Enrichment state
+  const [enrichingGoogle, setEnrichingGoogle] = useState(false);
+  const [enrichingHunter, setEnrichingHunter] = useState(false);
 
   useEffect(() => {
     fetchBusiness();
@@ -191,20 +198,68 @@ export default function BusinessDetailPage() {
     }
   };
 
+  const enrichWithGoogle = async () => {
+    setEnrichingGoogle(true);
+    try {
+      const response = await fetch(`/api/businesses/${businessId}/enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'google' }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Google Places data refreshed successfully!');
+        await fetchBusiness();
+      } else {
+        alert('❌ ' + (data.error || 'Failed to enrich with Google'));
+      }
+    } catch (error) {
+      console.error('Failed to enrich with Google:', error);
+      alert('❌ Failed to enrich with Google');
+    } finally {
+      setEnrichingGoogle(false);
+    }
+  };
+
+  const enrichWithHunter = async () => {
+    setEnrichingHunter(true);
+    try {
+      const response = await fetch(`/api/businesses/${businessId}/enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'hunter' }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ Found ${data.emails?.length || 1} email(s)! Email updated.`);
+        await fetchBusiness();
+      } else {
+        alert('❌ ' + (data.error || 'Failed to find email'));
+      }
+    } catch (error) {
+      console.error('Failed to enrich with Hunter:', error);
+      alert('❌ Failed to find email');
+    } finally {
+      setEnrichingHunter(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Business not found</h2>
-          <Link href="/leads" className="text-blue-600 hover:text-blue-700">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Business not found</h2>
+          <Link href="/leads" className="text-primary hover:text-primary/80">
             Back to Leads
           </Link>
         </div>
@@ -213,15 +268,37 @@ export default function BusinessDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/leads" className="text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-6 h-6" />
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900">{business.businessName}</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/leads" className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="w-6 h-6" />
+              </Link>
+              <h1 className="text-2xl font-bold text-foreground">{business.businessName}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={enrichWithGoogle}
+                disabled={enrichingGoogle}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {enrichingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Google
+              </button>
+              <button
+                onClick={enrichWithHunter}
+                disabled={enrichingHunter || !business.website}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                title={!business.website ? "Website required" : "Find email with Hunter.io"}
+              >
+                {enrichingHunter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                Email
+              </button>
+              <ModeToggle />
+            </div>
           </div>
         </div>
       </header>
@@ -232,7 +309,7 @@ export default function BusinessDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Photo */}
             {business.photos[0]?.fileUrl && (
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-card rounded-lg shadow-md overflow-hidden border">
                 <img
                   src={business.photos[0].fileUrl}
                   alt={business.businessName}
@@ -260,9 +337,9 @@ export default function BusinessDetailPage() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1 mb-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-2xl font-bold">{Number(business.googleRating).toFixed(1)}</span>
+                          <span className="text-2xl font-bold text-foreground">{Number(business.googleRating).toFixed(1)}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <MessageSquare className="w-3 h-3" />
                           {business.googleReviewCount || 0} reviews
                         </div>
@@ -278,7 +355,7 @@ export default function BusinessDetailPage() {
                             {'$'.repeat(business.googlePriceLevel)}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">Price level</span>
+                        <span className="text-xs text-muted-foreground">Price level</span>
                       </div>
                     )}
 
@@ -292,7 +369,7 @@ export default function BusinessDetailPage() {
                           <Clock className="w-3 h-3 mr-1" />
                           {business.googleBusinessHours.open_now ? 'Open Now' : 'Closed'}
                         </Badge>
-                        <span className="text-xs text-gray-500">Current status</span>
+                        <span className="text-xs text-muted-foreground">Current status</span>
                       </div>
                     )}
                   </div>
@@ -302,15 +379,15 @@ export default function BusinessDetailPage() {
                     <>
                       <Separator className="my-4" />
                       <div>
-                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-foreground">
                           <Clock className="w-4 h-4" />
                           Business Hours
                         </h4>
                         <div className="grid gap-1 text-sm">
                           {business.googleBusinessHours.weekday_text.map((day: string, idx: number) => (
                             <div key={idx} className="flex justify-between">
-                              <span className="text-gray-600">{day.split(': ')[0]}:</span>
-                              <span className="font-medium">{day.split(': ')[1]}</span>
+                              <span className="text-muted-foreground">{day.split(': ')[0]}:</span>
+                              <span className="font-medium text-foreground">{day.split(': ')[1]}</span>
                             </div>
                           ))}
                         </div>
@@ -355,7 +432,7 @@ export default function BusinessDetailPage() {
                     {editing ? (
                       <>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Business Name
                           </label>
                           <input
@@ -364,12 +441,13 @@ export default function BusinessDetailPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, businessName: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter business name"
+                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Business Type
                           </label>
                           <input
@@ -378,12 +456,13 @@ export default function BusinessDetailPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, businessType: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter business type"
+                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Address
                           </label>
                           <input
@@ -392,13 +471,14 @@ export default function BusinessDetailPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, address: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter address"
+                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                           />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               City
                             </label>
                             <input
@@ -407,11 +487,12 @@ export default function BusinessDetailPage() {
                               onChange={(e) =>
                                 setFormData({ ...formData, city: e.target.value })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              placeholder="Enter city"
+                              className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               State
                             </label>
                             <input
@@ -420,13 +501,14 @@ export default function BusinessDetailPage() {
                               onChange={(e) =>
                                 setFormData({ ...formData, state: e.target.value })
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              placeholder="Enter state"
+                              className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Phone
                           </label>
                           <input
@@ -435,12 +517,13 @@ export default function BusinessDetailPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, phone: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter phone number"
+                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Email
                           </label>
                           <input
@@ -449,12 +532,13 @@ export default function BusinessDetailPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, email: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter email address"
+                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Website
                           </label>
                           <input
@@ -463,7 +547,8 @@ export default function BusinessDetailPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, website: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter website URL"
+                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                           />
                         </div>
 
@@ -493,18 +578,18 @@ export default function BusinessDetailPage() {
                         <div className="grid gap-4">
                           {business.businessType && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500">Type</label>
-                              <p className="text-gray-900">{business.businessType}</p>
+                              <label className="text-sm font-medium text-muted-foreground">Type</label>
+                              <p className="text-foreground">{business.businessType}</p>
                             </div>
                           )}
 
                           {business.address && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <MapPin className="w-4 h-4" />
                                 Address
                               </label>
-                              <p className="text-gray-900">
+                              <p className="text-foreground">
                                 {business.address}
                                 {business.city && `, ${business.city}`}
                                 {business.state && `, ${business.state}`}
@@ -515,27 +600,27 @@ export default function BusinessDetailPage() {
 
                           {business.phone && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Phone className="w-4 h-4" />
                                 Phone
                               </label>
-                              <p className="text-gray-900">{business.phone}</p>
+                              <p className="text-foreground">{business.phone}</p>
                             </div>
                           )}
 
                           {business.email && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Mail className="w-4 h-4" />
                                 Email
                               </label>
-                              <p className="text-gray-900">{business.email}</p>
+                              <p className="text-foreground">{business.email}</p>
                             </div>
                           )}
 
                           {business.website && (
                             <div>
-                              <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                 <Globe className="w-4 h-4" />
                                 Website
                               </label>
@@ -543,7 +628,7 @@ export default function BusinessDetailPage() {
                                 href={business.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-primary hover:text-primary/80"
                               >
                                 {business.website}
                               </a>
@@ -553,7 +638,7 @@ export default function BusinessDetailPage() {
 
                         <button
                           onClick={() => setEditing(true)}
-                          className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                          className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/80"
                         >
                           <Edit2 className="w-4 h-4" />
                           Edit
