@@ -16,6 +16,9 @@ type Business = {
   address: string | null;
   city: string | null;
   state: string | null;
+  zipCode: string | null;
+  country: string | null;
+  formattedAddress: string | null;
   phone: string | null;
   email: string | null;
   reviewStatus: string;
