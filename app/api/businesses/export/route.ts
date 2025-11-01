@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
         if (business.industry) notes.push(`Industry: ${business.industry}`);
         if (business.googleRating) notes.push(`Rating: ${business.googleRating}⭐`);
         if (business.confidenceScore) notes.push(`Confidence: ${Number(business.confidenceScore) * 100}%`);
-        if (business.source) notes.push(`Source: ${business.source}`);
+        if (business.dataSource) notes.push(`Source: ${business.dataSource}`);
         if (business.linkedinUrl) notes.push(`LinkedIn: ${business.linkedinUrl}`);
 
         const note1 = escapeCsvValue(notes.join(' | '));
