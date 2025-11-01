@@ -19,34 +19,50 @@ const transporter = nodemailer.createTransport({
 // Generate email content using AI
 async function generateEmailContent(business: any) {
   try {
+    // Load all customizable variables from environment
     const photographerName = process.env.PHOTOGRAPHER_NAME || 'Professional Photographer';
     const businessName = process.env.BUSINESS_NAME || 'Our Photography Studio';
     const bookingUrl = process.env.BOOKING_URL || 'https://calendly.com/yourname/consultation';
 
-    const prompt = `Generate a professional, personalized cold email to ${business.businessName}, a ${business.businessType || 'business'} located at ${business.address || 'their location'}.
+    // Email template variables
+    const serviceName = process.env.EMAIL_SERVICE_NAME || 'professional headshot photography';
+    const serviceType = process.env.EMAIL_SERVICE_TYPE || 'business portraits';
+    const benefits = process.env.EMAIL_BENEFITS || 'increased LinkedIn engagement, better first impressions, professional branding consistency';
+    const usp = process.env.EMAIL_USP || 'specialize in corporate headshots, quick turnaround time';
+    const cta = process.env.EMAIL_CTA || 'Book a free consultation to discuss how professional headshots can help your business';
+    const tone = process.env.EMAIL_TONE || 'warm and professional';
+    const maxWords = process.env.EMAIL_MAX_WORDS || '150';
 
-The email should:
-- Introduce yourself as ${photographerName}, a professional headshot photographer specializing in business portraits
+    const prompt = `Generate a professional, personalized cold email to ${business.businessName}, a ${business.businessType || 'business'} located at ${business.city || business.address || 'their location'}.
+
+PHOTOGRAPHER/BUSINESS INFO:
+- Name: ${photographerName}
+- Business: ${businessName}
+- Service: ${serviceName}
+- Specialization: ${serviceType}
+
+EMAIL REQUIREMENTS:
+- Introduce yourself as ${photographerName} from ${businessName}
 - Mention you noticed their business ${business.googleRating ? `and saw they have great ${business.googleRating}-star reviews` : 'in the area'}
-- Explain how professional headshots can help their team look more credible and trustworthy to clients
-- Mention specific benefits: increased LinkedIn engagement, better first impressions, professional branding consistency
-- Keep it concise (3-4 short paragraphs, max 150 words total)
-- Be warm, friendly, and conversational (not salesy)
-- End with a clear call-to-action to book a free consultation
-- IMPORTANT: Include the booking link at the end: "${bookingUrl}"
+- Explain how your service (${serviceName}) can help their business
+- Mention these specific benefits: ${benefits}
+- Highlight your unique value: ${usp}
+- Keep it concise (3-4 short paragraphs, max ${maxWords} words total)
+- Use a ${tone} tone (not salesy or pushy)
+- End with this call-to-action: "${cta}"
+- IMPORTANT: Include the booking link at the end: ${bookingUrl}
 
-Business details:
+BUSINESS DETAILS:
 - Name: ${business.businessName}
 - Type: ${business.businessType || 'business'}
 - Location: ${business.city || business.address || 'the area'}
 ${business.googleRating ? `- Rating: ${business.googleRating} stars with ${business.googleReviewCount || 0} reviews` : ''}
-
-Tone: Professional but approachable, like reaching out to a colleague
+${business.website ? `- Website: ${business.website}` : ''}
 
 Return a JSON object with:
 {
-  "subject": "Email subject line (personalized, mention headshots or their business name)",
-  "body": "Full email body in plain text with booking link included"
+  "subject": "Email subject line (personalized with their business name or service benefit)",
+  "body": "Full email body in plain text with booking link included at the end"
 }`;
 
     const response = await openai.chat.completions.create({
