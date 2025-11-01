@@ -13,8 +13,23 @@ const LIMITS = {
     warning_threshold: 0.8,
     critical_threshold: 0.94,
   },
+  google_vision_ocr: {
+    monthly_requests: 1000, // First 1000 images/month free
+    warning_threshold: 0.8,
+    critical_threshold: 0.94,
+  },
   hunter_io: {
     monthly_requests: 50, // Free tier
+    warning_threshold: 0.8,
+    critical_threshold: 0.94,
+  },
+  linkedin_realtime_api: {
+    monthly_budget: 10.0, // RapidAPI subscription
+    warning_threshold: 0.8,
+    critical_threshold: 0.94,
+  },
+  linkedin_fresh_api: {
+    monthly_budget: 10.0, // RapidAPI subscription
     warning_threshold: 0.8,
     critical_threshold: 0.94,
   },
@@ -92,7 +107,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate status for each service
-    const services = ['openai', 'google_maps', 'hunter_io'];
+    const services = [
+      'openai',
+      'google_maps',
+      'google_vision_ocr',
+      'hunter_io',
+      'linkedin_realtime_api',
+      'linkedin_fresh_api',
+    ];
     const usageStats = services.map((service) => {
       const usage = usageData.find((u) => u.service === service) || {
         requestsCount: 0,

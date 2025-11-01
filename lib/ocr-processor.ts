@@ -209,6 +209,19 @@ export async function processBusinessCard(
     const extractionResult = await extractTextFromImage(imageBase64);
 
     if (!extractionResult.success || !extractionResult.text) {
+      // Log failed OCR attempt
+      await prisma.apiUsageLog.create({
+        data: {
+          service: 'google_vision_ocr',
+          requestType: 'business_card_ocr',
+          success: false,
+          estimatedCost: 0.0015,
+          responseData: {
+            error: extractionResult.error,
+          },
+        },
+      });
+
       return {
         success: false,
         error: extractionResult.error || 'Failed to extract text from image',
@@ -220,6 +233,21 @@ export async function processBusinessCard(
 
     // Validate that we got at least some useful data
     if (!parsedData || (!parsedData.businessName && !parsedData.email && !parsedData.phone)) {
+      // Log insufficient data extraction
+      await prisma.apiUsageLog.create({
+        data: {
+          service: 'google_vision_ocr',
+          requestType: 'business_card_ocr',
+          success: false,
+          estimatedCost: 0.0015,
+          responseData: {
+            error: 'Insufficient business data extracted',
+            extractedText: extractionResult.text?.substring(0, 500),
+            parsedData,
+          },
+        },
+      });
+
       return {
         success: false,
         error: 'Could not extract sufficient business information from the image',
