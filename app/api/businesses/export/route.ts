@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         if (business.businessType) notes.push(`Type: ${business.businessType}`);
         if (business.industry) notes.push(`Industry: ${business.industry}`);
         if (business.googleRating) notes.push(`Rating: ${business.googleRating}⭐`);
-        if (business.qualityScore) notes.push(`Quality: ${business.qualityScore}%`);
+        if (business.confidenceScore) notes.push(`Confidence: ${Number(business.confidenceScore) * 100}%`);
         if (business.source) notes.push(`Source: ${business.source}`);
         if (business.linkedinUrl) notes.push(`LinkedIn: ${business.linkedinUrl}`);
 
