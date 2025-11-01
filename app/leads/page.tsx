@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Upload, BarChart3 } from 'lucide-react';
+import { Upload, BarChart3, Download } from 'lucide-react';
 import { BusinessDataTable } from '@/components/business-data-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,6 +66,15 @@ export default function LeadsPage() {
     }
   };
 
+  const handleExport = () => {
+    // Open export URL in new window to trigger download
+    window.open('/api/businesses/export?format=csv', '_blank');
+  };
+
+  const handleExportApproved = () => {
+    window.open('/api/businesses/export?format=csv&status=approved', '_blank');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -85,6 +94,14 @@ export default function LeadsPage() {
               <p className="text-muted-foreground mt-1">Manage and track your business leads</p>
             </div>
             <nav className="flex gap-3">
+              <Button variant="outline" onClick={handleExportApproved}>
+                <Download className="w-4 h-4 mr-2" />
+                Export Approved
+              </Button>
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="w-4 h-4 mr-2" />
+                Export All
+              </Button>
               <Link href="/">
                 <Button variant="outline">
                   <Upload className="w-4 h-4 mr-2" />
