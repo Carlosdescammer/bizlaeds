@@ -78,11 +78,43 @@ export async function GET(request: NextRequest) {
         // Business number (could be a secondary phone or leave empty)
         const businessNumber = business.website || '';
 
-        // Address components
-        const streetAddress = escapeCsvValue(business.address || '');
-        const suburbTown = escapeCsvValue(business.city || '');
-        const postcodeZip = business.zipCode || '';
-        const state = business.state || '';
+        // Address components - use formattedAddress if available
+        let streetAddress = '';
+        let suburbTown = '';
+        let postcodeZip = '';
+        let state = '';
+
+        if (business.formattedAddress) {
+          // Parse Google's formatted address
+          // Format: "123 Main St, City, ST 12345, Country"
+          const parts = business.formattedAddress.split(',').map(p => p.trim());
+
+          if (parts.length >= 3) {
+            streetAddress = escapeCsvValue(parts[0]); // Street address
+            suburbTown = escapeCsvValue(parts[1]); // City
+
+            // Parse "ST 12345" format
+            const stateZipPart = parts[2];
+            const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s+(\d{5}(-\d{4})?)$/);
+            if (stateZipMatch) {
+              state = stateZipMatch[1];
+              postcodeZip = stateZipMatch[2];
+            } else {
+              // Fallback: use the whole part as state
+              state = escapeCsvValue(stateZipPart);
+            }
+          } else {
+            // Fallback: use formatted address as street address
+            streetAddress = escapeCsvValue(business.formattedAddress);
+          }
+        } else {
+          // Use individual fields
+          streetAddress = escapeCsvValue(business.address || '');
+          suburbTown = escapeCsvValue(business.city || '');
+          postcodeZip = business.zipCode || '';
+          state = business.state || '';
+        }
+
         const country = business.country || 'USA';
 
         // Note 1 - Include useful metadata

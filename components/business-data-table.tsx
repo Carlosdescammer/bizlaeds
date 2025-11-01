@@ -41,6 +41,9 @@ export type Business = {
   address: string | null
   city: string | null
   state: string | null
+  zipCode: string | null
+  country: string | null
+  formattedAddress: string | null
   phone: string | null
   email: string | null
   reviewStatus: string
@@ -81,13 +84,36 @@ export const columns: ColumnDef<Business>[] = [
     header: "Location",
     cell: ({ row }) => {
       const business = row.original
+
+      // Use formattedAddress if available (from Google Maps API)
+      if (business.formattedAddress) {
+        return (
+          <div className="text-sm max-w-[250px]">
+            <div className="font-medium truncate">{business.formattedAddress}</div>
+          </div>
+        )
+      }
+
+      // Otherwise build address from components
+      const addressParts = []
+      if (business.address) addressParts.push(business.address)
+      if (business.city) addressParts.push(business.city)
+      if (business.state) addressParts.push(business.state)
+      if (business.zipCode) addressParts.push(business.zipCode)
+
       return (
-        <div className="text-sm">
-          {business.address && <div>{business.address}</div>}
-          {(business.city || business.state) && (
-            <div className="text-gray-500">
-              {business.city}{business.city && business.state && ', '}{business.state}
+        <div className="text-sm max-w-[250px]">
+          {business.address && (
+            <div className="font-medium truncate">{business.address}</div>
+          )}
+          {(business.city || business.state || business.zipCode) && (
+            <div className="text-muted-foreground text-xs truncate">
+              {business.city}{business.city && business.state && ', '}
+              {business.state} {business.zipCode}
             </div>
+          )}
+          {!addressParts.length && (
+            <span className="text-muted-foreground italic">No address</span>
           )}
         </div>
       )
