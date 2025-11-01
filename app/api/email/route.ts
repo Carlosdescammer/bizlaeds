@@ -19,26 +19,34 @@ const transporter = nodemailer.createTransport({
 // Generate email content using AI
 async function generateEmailContent(business: any) {
   try {
+    const photographerName = process.env.PHOTOGRAPHER_NAME || 'Professional Photographer';
+    const businessName = process.env.BUSINESS_NAME || 'Our Photography Studio';
+    const bookingUrl = process.env.BOOKING_URL || 'https://calendly.com/yourname/consultation';
+
     const prompt = `Generate a professional, personalized cold email to ${business.businessName}, a ${business.businessType || 'business'} located at ${business.address || 'their location'}.
 
 The email should:
-- Introduce yourself as a professional photographer
-- Mention you noticed their business and were impressed
-- Offer to help them improve their online presence with high-quality photos
-- Keep it concise (3-4 short paragraphs)
-- Be friendly but professional
-- Include a clear call-to-action to schedule a free consultation
-- Don't be pushy or salesy
+- Introduce yourself as ${photographerName}, a professional headshot photographer specializing in business portraits
+- Mention you noticed their business ${business.googleRating ? `and saw they have great ${business.googleRating}-star reviews` : 'in the area'}
+- Explain how professional headshots can help their team look more credible and trustworthy to clients
+- Mention specific benefits: increased LinkedIn engagement, better first impressions, professional branding consistency
+- Keep it concise (3-4 short paragraphs, max 150 words total)
+- Be warm, friendly, and conversational (not salesy)
+- End with a clear call-to-action to book a free consultation
+- IMPORTANT: Include the booking link at the end: "${bookingUrl}"
 
 Business details:
 - Name: ${business.businessName}
 - Type: ${business.businessType || 'business'}
-- Address: ${business.address || 'N/A'}
+- Location: ${business.city || business.address || 'the area'}
+${business.googleRating ? `- Rating: ${business.googleRating} stars with ${business.googleReviewCount || 0} reviews` : ''}
+
+Tone: Professional but approachable, like reaching out to a colleague
 
 Return a JSON object with:
 {
-  "subject": "Email subject line",
-  "body": "Full email body in plain text"
+  "subject": "Email subject line (personalized, mention headshots or their business name)",
+  "body": "Full email body in plain text with booking link included"
 }`;
 
     const response = await openai.chat.completions.create({
@@ -46,7 +54,7 @@ Return a JSON object with:
       messages: [
         {
           role: 'system',
-          content: 'You are a professional business email writer. Generate personalized, effective cold outreach emails.',
+          content: 'You are an expert at writing warm, personalized cold outreach emails for professional headshot photographers. Your emails are conversational, concise, and focus on building relationships rather than hard selling. You understand that professional headshots help businesses build trust and credibility with their clients.',
         },
         {
           role: 'user',
@@ -54,7 +62,7 @@ Return a JSON object with:
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.7,
+      temperature: 0.8,
     });
 
     const emailContent = JSON.parse(response.choices[0]?.message?.content || '{}');
