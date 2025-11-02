@@ -28,6 +28,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { HunterEnrichmentPanel } from '@/components/hunter-enrichment-panel';
 import {
   calculateLeadScore,
   getTimingRecommendation,
@@ -61,6 +62,24 @@ type Business = {
   formattedAddress: string | null;
   googlePhotosData: any;
   googleEnrichedAt: string | null;
+  // Hunter.io enrichment fields
+  contactName?: string | null;
+  contactPosition?: string | null;
+  contactSeniority?: string | null;
+  contactDepartment?: string | null;
+  contactLinkedin?: string | null;
+  contactTwitter?: string | null;
+  contactLocation?: string | null;
+  hunterEmailCount?: number | null;
+  hunterVerificationStatus?: string | null;
+  hunterVerificationScore?: number | null;
+  emailConfidence?: number | null;
+  emailDeliverability?: string | null;
+  emailRiskLevel?: string | null;
+  relevanceScore?: number | null;
+  leadPriority?: string | null;
+  hunterEnrichedAt?: string | null;
+  hunterVerifiedAt?: string | null;
 };
 
 export default function BusinessDetailPage() {
@@ -358,6 +377,9 @@ export default function BusinessDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Hunter.io Enrichment Panel */}
+            <HunterEnrichmentPanel business={business} onRefresh={fetchBusiness} />
 
             {/* Business Intelligence Card */}
             {(() => {
