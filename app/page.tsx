@@ -97,19 +97,20 @@ function HomeContent() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-foreground">Business Leads</h1>
-            <nav className="flex gap-4 items-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Business Leads</h1>
+            <nav className="flex gap-2 sm:gap-4 items-center">
               <Link
                 href="/leads"
-                className="text-muted-foreground hover:text-foreground font-medium"
+                className="text-muted-foreground hover:text-foreground font-medium text-sm sm:text-base"
               >
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Leads</span>
               </Link>
               <Link
                 href="/usage"
-                className="text-muted-foreground hover:text-foreground font-medium"
+                className="text-muted-foreground hover:text-foreground font-medium text-sm sm:text-base"
               >
                 Usage
               </Link>
@@ -117,15 +118,15 @@ function HomeContent() {
               {user ? (
                 <button
                   onClick={() => user.signOut()}
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-medium"
+                  className="flex items-center gap-1 sm:gap-2 text-muted-foreground hover:text-foreground font-medium text-sm sm:text-base"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sign Out
+                  <span className="hidden sm:inline">Sign Out</span>
                 </button>
               ) : (
                 <Link
                   href="/auth/signin"
-                  className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 font-medium"
+                  className="bg-primary text-primary-foreground px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-primary/90 font-medium text-sm sm:text-base"
                 >
                   Sign In
                 </Link>
@@ -136,32 +137,32 @@ function HomeContent() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-foreground mb-4">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
             Capture Business Leads
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base sm:text-lg text-muted-foreground px-2">
             Take a photo of any business and let AI extract contact information
           </p>
         </div>
 
         {/* Upload Area */}
-        <div className="bg-card rounded-2xl shadow-xl p-8 mb-8 border">
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-900 dark:text-blue-100">
+        <div className="bg-card rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 border">
+          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+            <p className="text-xs sm:text-sm text-blue-900 dark:text-blue-100">
               <strong>iPhone users:</strong> If you get an error, go to Settings → Camera → Formats and select "Most Compatible" to save photos as JPEG instead of HEIC.
             </p>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Mobile Camera Button */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 onClick={() => cameraInputRef.current?.click()}
                 disabled={uploading || processing}
-                className="flex-1 flex items-center justify-center gap-3 bg-blue-600 text-white rounded-xl px-8 py-4 font-semibold text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 sm:gap-3 bg-blue-600 text-white rounded-xl px-6 sm:px-8 py-3 sm:py-4 font-semibold text-base sm:text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
-                <Camera className="w-6 h-6" />
+                <Camera className="w-5 h-5 sm:w-6 sm:h-6" />
                 Take Photo
               </button>
 
@@ -169,9 +170,9 @@ function HomeContent() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading || processing}
-                className="flex-1 flex items-center justify-center gap-3 bg-indigo-600 text-white rounded-xl px-8 py-4 font-semibold text-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 sm:gap-3 bg-indigo-600 text-white rounded-xl px-6 sm:px-8 py-3 sm:py-4 font-semibold text-base sm:text-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
-                <Upload className="w-6 h-6" />
+                <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
                 Upload Photo
               </button>
             </div>
@@ -268,21 +269,21 @@ function HomeContent() {
         </div>
 
         {/* Features */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-card rounded-xl p-6 shadow-md border">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center mb-4">
-              <Camera className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="bg-card rounded-xl p-4 sm:p-6 shadow-md border">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
+              <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="font-bold text-lg mb-2 text-foreground">Quick Capture</h3>
-            <p className="text-muted-foreground">
+            <h3 className="font-bold text-base sm:text-lg mb-2 text-foreground">Quick Capture</h3>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Use your phone camera to instantly capture business information
             </p>
           </div>
 
-          <div className="bg-card rounded-xl p-6 shadow-md border">
-            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center mb-4">
+          <div className="bg-card rounded-xl p-4 sm:p-6 shadow-md border">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
               <svg
-                className="w-6 h-6 text-indigo-600 dark:text-indigo-400"
+                className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -295,16 +296,16 @@ function HomeContent() {
                 />
               </svg>
             </div>
-            <h3 className="font-bold text-lg mb-2 text-foreground">AI Processing</h3>
-            <p className="text-muted-foreground">
+            <h3 className="font-bold text-base sm:text-lg mb-2 text-foreground">AI Processing</h3>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Advanced AI extracts business name, address, and contact details
             </p>
           </div>
 
-          <div className="bg-card rounded-xl p-6 shadow-md border">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center mb-4">
+          <div className="bg-card rounded-xl p-4 sm:p-6 shadow-md border sm:col-span-2 md:col-span-1">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
               <svg
-                className="w-6 h-6 text-green-600 dark:text-green-400"
+                className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -317,8 +318,8 @@ function HomeContent() {
                 />
               </svg>
             </div>
-            <h3 className="font-bold text-lg mb-2 text-foreground">Review & Approve</h3>
-            <p className="text-muted-foreground">
+            <h3 className="font-bold text-base sm:text-lg mb-2 text-foreground">Review & Approve</h3>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Verify extracted information before adding to your database
             </p>
           </div>

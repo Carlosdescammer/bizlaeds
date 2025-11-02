@@ -334,38 +334,38 @@ export default function BusinessDetailPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/leads" className="text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <Link href="/leads" className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
               </Link>
-              <h1 className="text-2xl font-bold text-foreground">{business.businessName}</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{business.businessName}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <button
                 onClick={enrichWithGoogle}
                 disabled={enrichingGoogle}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 min-h-[44px]"
               >
                 {enrichingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Google
+                <span className="hidden sm:inline">Google</span>
               </button>
               <button
                 onClick={enrichWithHunter}
                 disabled={enrichingHunter || !business.website}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 min-h-[44px]"
                 title={!business.website ? "Website required" : "Find email with Hunter.io"}
               >
                 {enrichingHunter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                Email
+                <span className="hidden sm:inline">Email</span>
               </button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button
                     disabled={deleting}
-                    className="flex items-center gap-2 px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
                     title="Delete business"
                   >
                     {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -404,10 +404,10 @@ export default function BusinessDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Photo */}
             {business.photos[0]?.fileUrl && (
               <div className="bg-card rounded-lg shadow-md overflow-hidden border">
@@ -422,17 +422,17 @@ export default function BusinessDetailPage() {
             {/* Google Photos Gallery */}
             {business.googlePhotosData && Array.isArray(business.googlePhotosData) && business.googlePhotosData.length > 0 && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <span className="text-xl">📸</span>
                     Google Photos ({business.googlePhotosData.length})
                   </CardTitle>
-                  <CardDescription>Professional photos from Google Places</CardDescription>
+                  <CardDescription className="text-sm">Professional photos from Google Places</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                     {business.googlePhotosData.slice(0, 9).map((photo: any, idx: number) => (
-                      <div key={idx} className="aspect-video rounded-lg overflow-hidden border border-border bg-muted">
+                      <div key={idx} className="aspect-square sm:aspect-video rounded-lg overflow-hidden border border-border bg-muted">
                         <img
                           src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`}
                           alt={`${business.businessName} photo ${idx + 1}`}
@@ -525,7 +525,7 @@ export default function BusinessDetailPage() {
                           <Star className="w-4 h-4" />
                           Business Strength
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                           {business.googleRating && (
                             <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
                               <div className="flex items-center gap-2">
@@ -649,7 +649,7 @@ export default function BusinessDetailPage() {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {/* Rating */}
                     {business.googleRating && (
                       <div className="flex flex-col">
@@ -718,11 +718,11 @@ export default function BusinessDetailPage() {
 
             {/* Tabs */}
             <div className="bg-card rounded-lg shadow-md border">
-              <div className="border-b border-border">
+              <div className="border-b border-border overflow-x-auto">
                 <nav className="flex -mb-px">
                   <button
                     onClick={() => setActiveTab('details')}
-                    className={`px-6 py-3 border-b-2 font-medium text-sm ${
+                    className={`px-4 sm:px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap min-h-[48px] ${
                       activeTab === 'details'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -732,7 +732,7 @@ export default function BusinessDetailPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('email')}
-                    className={`px-6 py-3 border-b-2 font-medium text-sm ${
+                    className={`px-4 sm:px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap min-h-[48px] ${
                       activeTab === 'email'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -743,7 +743,7 @@ export default function BusinessDetailPage() {
                 </nav>
               </div>
 
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {/* Details Tab */}
                 {activeTab === 'details' && (
                   <div className="space-y-4">
@@ -794,7 +794,7 @@ export default function BusinessDetailPage() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1">
                               City
@@ -1093,9 +1093,9 @@ export default function BusinessDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 lg:order-last order-first">
             {/* Status Card */}
-            <div className="bg-card rounded-lg shadow-md p-6 border">
+            <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
               <h3 className="font-bold text-lg mb-4 text-foreground">Review Status</h3>
 
               <div className="mb-4">
@@ -1146,7 +1146,7 @@ export default function BusinessDetailPage() {
             </div>
 
             {/* Metadata */}
-            <div className="bg-card rounded-lg shadow-md p-6 border">
+            <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
               <h3 className="font-bold text-lg mb-4 text-foreground">Metadata</h3>
               <div className="space-y-3 text-sm">
                 <div>

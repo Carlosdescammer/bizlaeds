@@ -413,123 +413,123 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
 
         {/* Action Tabs */}
         <Tabs defaultValue="quick" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="quick">Quick</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
-            <TabsTrigger value="auto">Auto</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="quick" className="text-xs sm:text-sm py-2">Quick</TabsTrigger>
+            <TabsTrigger value="advanced" className="text-xs sm:text-sm py-2">Advanced</TabsTrigger>
+            <TabsTrigger value="auto" className="text-xs sm:text-sm py-2">Auto</TabsTrigger>
           </TabsList>
 
           {/* Quick Actions */}
-          <TabsContent value="quick" className="space-y-2 mt-4">
+          <TabsContent value="quick" className="space-y-2 mt-3 sm:mt-4">
             {domain && (
               <>
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start text-sm min-h-[44px]"
                   onClick={() => executeAction('email-count')}
                   disabled={loading || !domain}
                 >
                   {loading && activeAction === 'email-count' ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Search className="h-4 w-4 mr-2" />
+                    <Search className="h-4 w-4 mr-2 flex-shrink-0" />
                   )}
-                  Check Email Count (FREE)
+                  <span className="truncate">Check Email Count (FREE)</span>
                 </Button>
 
                 {!business.email && (
                   <Button
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start text-sm min-h-[44px]"
                     onClick={() => executeAction('domain-search')}
                     disabled={loading || !domain}
                   >
                     {loading && activeAction === 'domain-search' ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <Mail className="h-4 w-4 mr-2" />
+                      <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
                     )}
-                    Find Emails (1 credit)
+                    <span className="truncate">Find Emails (1 credit)</span>
                   </Button>
                 )}
 
                 {business.email && !business.hunterVerifiedAt && (
                   <Button
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start text-sm min-h-[44px]"
                     onClick={() => executeAction('email-verifier', { email: business.email })}
                     disabled={loading || !business.email}
                   >
                     {loading && activeAction === 'email-verifier' ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      <ShieldCheck className="h-4 w-4 mr-2 flex-shrink-0" />
                     )}
-                    Verify Email (0.5 credits)
+                    <span className="truncate">Verify Email (0.5 credits)</span>
                   </Button>
                 )}
 
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start text-sm min-h-[44px]"
                   onClick={() => executeAction('company-enrichment')}
                   disabled={loading || !domain}
                 >
                   {loading && activeAction === 'company-enrichment' ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Building2 className="h-4 w-4 mr-2" />
+                    <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
                   )}
-                  Enrich Company (1 credit)
+                  <span className="truncate">Enrich Company (1 credit)</span>
                 </Button>
               </>
             )}
 
             {!domain && (
-              <div className="text-sm text-muted-foreground text-center py-4">
+              <div className="text-xs sm:text-sm text-muted-foreground text-center py-4">
                 Add a website or email to enable enrichment
               </div>
             )}
           </TabsContent>
 
           {/* Advanced Actions */}
-          <TabsContent value="advanced" className="space-y-2 mt-4">
+          <TabsContent value="advanced" className="space-y-2 mt-3 sm:mt-4">
             {business.email && (
               <Button
                 variant="outline"
-                className="w-full justify-start"
+                className="w-full justify-start text-sm min-h-[44px]"
                 onClick={() => executeAction('email-enrichment', { email: business.email })}
                 disabled={loading || !business.email}
               >
                 {loading && activeAction === 'email-enrichment' ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <User className="h-4 w-4 mr-2" />
+                  <User className="h-4 w-4 mr-2 flex-shrink-0" />
                 )}
-                Enrich Contact Profile (1 credit)
+                <span className="truncate">Enrich Contact Profile (1 credit)</span>
               </Button>
             )}
 
             <Button
               variant="outline"
-              className="w-full justify-start"
+              className="w-full justify-start text-sm min-h-[44px]"
               onClick={calculateScore}
               disabled={loading}
             >
               {loading && activeAction === 'calculate-score' ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Award className="h-4 w-4 mr-2" />
+                <Award className="h-4 w-4 mr-2 flex-shrink-0" />
               )}
-              Calculate Lead Score (FREE)
+              <span className="truncate">Calculate Lead Score (FREE)</span>
             </Button>
           </TabsContent>
 
           {/* Auto Enrichment */}
-          <TabsContent value="auto" className="space-y-3 mt-4">
-            <div className="rounded-lg border p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
+          <TabsContent value="auto" className="space-y-3 mt-3 sm:mt-4">
+            <div className="rounded-lg border p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                 <span className="font-medium text-sm text-foreground">Full Auto-Enrichment</span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
@@ -540,19 +540,19 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
                 Cost: ~3-4 credits (~$0.003)
               </div>
               <Button
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 min-h-[44px] text-sm"
                 onClick={autoEnrich}
                 disabled={loading || !domain}
               >
                 {loading && activeAction === 'auto-enrich' ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enriching...
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin flex-shrink-0" />
+                    <span className="truncate">Enriching...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Run Full Auto-Enrichment
+                    <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">Run Full Auto-Enrichment</span>
                   </>
                 )}
               </Button>

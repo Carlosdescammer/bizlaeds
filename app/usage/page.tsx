@@ -99,38 +99,38 @@ export default function UsagePage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <Link href="/" className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
               </Link>
-              <h1 className="text-2xl font-bold text-foreground">API Usage Monitor</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">API Usage Monitor</h1>
             </div>
             <ModeToggle />
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Hunter.io Live Credits Banner */}
         {usageData?.hunterLive && (
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg shadow-md p-6 mb-6 border-2 border-purple-200 dark:border-purple-800">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6 border-2 border-purple-200 dark:border-purple-800">
             <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-2">
-                  <span className="text-2xl">🎯</span>
-                  Hunter.io Live Credits
-                  <span className="text-sm font-normal px-2 py-1 rounded-full bg-purple-600 text-white">
+              <div className="w-full">
+                <h3 className="text-base sm:text-lg font-bold text-foreground flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-xl sm:text-2xl">🎯</span>
+                  <span>Hunter.io Live Credits</span>
+                  <span className="text-xs sm:text-sm font-normal px-2 py-1 rounded-full bg-purple-600 text-white">
                     {usageData.hunterLive.plan}
                   </span>
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-3 sm:mt-4">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Credits</p>
-                    <p className="text-3xl font-bold text-purple-600">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Credits</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-purple-600">
                       {usageData.hunterLive.credits.available}
-                      <span className="text-base text-muted-foreground ml-2">
+                      <span className="text-sm sm:text-base text-muted-foreground ml-2">
                         / {usageData.hunterLive.credits.total}
                       </span>
                     </p>
@@ -139,20 +139,20 @@ export default function UsagePage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Searches</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Searches</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600">
                       {usageData.hunterLive.searches.available}
-                      <span className="text-sm text-muted-foreground ml-2">available</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground ml-2">available</span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {usageData.hunterLive.searches.used} used
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Verifications</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Verifications</p>
+                    <p className="text-xl sm:text-2xl font-bold text-green-600">
                       {usageData.hunterLive.verifications.available}
-                      <span className="text-sm text-muted-foreground ml-2">available</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground ml-2">available</span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {usageData.hunterLive.verifications.used} used
@@ -170,50 +170,50 @@ export default function UsagePage() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-card rounded-lg shadow-md p-6 border">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="font-medium text-muted-foreground">Total Cost</h3>
+              <h3 className="font-medium text-sm sm:text-base text-muted-foreground">Total Cost</h3>
             </div>
-            <p className="text-3xl font-bold text-foreground">
+            <p className="text-2xl sm:text-3xl font-bold text-foreground">
               ${(usageData?.totals?.cost || 0).toFixed(2)}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">This month</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">This month</p>
           </div>
 
-          <div className="bg-card rounded-lg shadow-md p-6 border">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h3 className="font-medium text-muted-foreground">Total Requests</h3>
+              <h3 className="font-medium text-sm sm:text-base text-muted-foreground">Total Requests</h3>
             </div>
-            <p className="text-3xl font-bold text-foreground">
+            <p className="text-2xl sm:text-3xl font-bold text-foreground">
               {usageData?.totals?.requests || 0}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">API calls made</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">API calls made</p>
           </div>
 
-          <div className="bg-card rounded-lg shadow-md p-6 border">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-950 rounded-lg flex items-center justify-center">
-                <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border sm:col-span-2 md:col-span-1">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="font-medium text-muted-foreground">Active Alerts</h3>
+              <h3 className="font-medium text-sm sm:text-base text-muted-foreground">Active Alerts</h3>
             </div>
-            <p className="text-3xl font-bold text-foreground">
+            <p className="text-2xl sm:text-3xl font-bold text-foreground">
               {usageData?.alerts?.length || 0}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">Last 7 days</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Last 7 days</p>
           </div>
         </div>
 
         {/* Service Usage */}
-        <div className="bg-card rounded-lg shadow-md p-6 mb-8 border">
-          <h2 className="text-xl font-bold text-foreground mb-6">Service Usage</h2>
+        <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8 border">
+          <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6">Service Usage</h2>
 
           <div className="space-y-6">
             {(usageData?.services || []).map((service: ServiceUsage) => (
@@ -325,8 +325,8 @@ export default function UsagePage() {
 
         {/* Recent Alerts */}
         {usageData?.alerts && Array.isArray(usageData.alerts) && usageData.alerts.length > 0 && (
-          <div className="bg-card rounded-lg shadow-md p-6 mb-8 border">
-            <h2 className="text-xl font-bold text-foreground mb-4">Recent Alerts</h2>
+          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8 border">
+            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Recent Alerts</h2>
             <div className="space-y-3">
               {usageData.alerts.map((alert: any) => (
                 <div
@@ -357,10 +357,10 @@ export default function UsagePage() {
 
         {/* Recent Activity Log */}
         {usageData?.recentLogs && Array.isArray(usageData.recentLogs) && usageData.recentLogs.length > 0 && (
-          <div className="bg-card rounded-lg shadow-md p-6 border">
-            <h2 className="text-xl font-bold text-foreground mb-4">Recent API Activity</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
+            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Recent API Activity</h2>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">

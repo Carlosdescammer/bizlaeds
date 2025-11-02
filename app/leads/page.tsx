@@ -90,31 +90,31 @@ export default function LeadsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Business Leads</h1>
-              <p className="text-muted-foreground mt-1">Manage and track your business leads</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Business Leads</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage and track your business leads</p>
             </div>
-            <nav className="flex gap-3">
-              <Button variant="outline" onClick={handleExportApproved}>
-                <Download className="w-4 h-4 mr-2" />
-                Export Approved
+            <nav className="flex flex-wrap gap-2 sm:gap-3">
+              <Button variant="outline" onClick={handleExportApproved} size="sm" className="flex-1 sm:flex-initial">
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export Approved</span>
               </Button>
-              <Button variant="outline" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-2" />
-                Export All
+              <Button variant="outline" onClick={handleExport} size="sm" className="flex-1 sm:flex-initial">
+                <Download className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export All</span>
               </Button>
-              <Link href="/">
-                <Button variant="outline">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Photo
+              <Link href="/" className="flex-1 sm:flex-initial">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Upload className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Upload Photo</span>
                 </Button>
               </Link>
-              <Link href="/usage">
-                <Button variant="outline">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Usage
+              <Link href="/usage" className="flex-1 sm:flex-initial">
+                <Button variant="outline" size="sm" className="w-full">
+                  <BarChart3 className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Usage</span>
                 </Button>
               </Link>
               <ModeToggle />
@@ -123,34 +123,34 @@ export default function LeadsPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
           <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Total Leads</CardDescription>
-              <CardTitle className="text-3xl">{stats.total}</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+              <CardDescription className="text-xs sm:text-sm">Total Leads</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl">{stats.total}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Pending Review</CardDescription>
-              <CardTitle className="text-3xl text-yellow-600">{stats.pending}</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+              <CardDescription className="text-xs sm:text-sm">Pending Review</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl text-yellow-600">{stats.pending}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Approved</CardDescription>
-              <CardTitle className="text-3xl text-green-600">{stats.approved}</CardTitle>
+            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+              <CardDescription className="text-xs sm:text-sm">Approved</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl text-green-600">{stats.approved}</CardTitle>
             </CardHeader>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Avg Rating</CardDescription>
-              <CardTitle className="text-3xl">
+            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+              <CardDescription className="text-xs sm:text-sm">Avg Rating</CardDescription>
+              <CardTitle className="text-2xl sm:text-3xl">
                 {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '-'}
               </CardTitle>
             </CardHeader>
@@ -159,13 +159,13 @@ export default function LeadsPage() {
 
         {/* Data Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>All Businesses</CardTitle>
-            <CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">All Businesses</CardTitle>
+            <CardDescription className="text-sm">
               View and manage all business leads collected from photos
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
             <BusinessDataTable data={businesses} />
           </CardContent>
         </Card>

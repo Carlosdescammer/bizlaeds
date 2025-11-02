@@ -247,18 +247,18 @@ export function BusinessDataTable({ data }: BusinessDataTableProps) {
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4 gap-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center py-3 sm:py-4 gap-3 sm:gap-4 px-4 sm:px-0">
         <Input
           placeholder="Search businesses..."
           value={(table.getColumn("businessName")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("businessName")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
+            <Button variant="outline" className="w-full sm:w-auto sm:ml-auto">
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -283,14 +283,14 @@ export function BusinessDataTable({ data }: BusinessDataTableProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="whitespace-nowrap">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -308,7 +308,7 @@ export function BusinessDataTable({ data }: BusinessDataTableProps) {
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="whitespace-nowrap">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -330,16 +330,17 @@ export function BusinessDataTable({ data }: BusinessDataTableProps) {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="text-muted-foreground flex-1 text-sm">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 py-3 sm:py-4 px-4 sm:px-0">
+        <div className="text-muted-foreground text-xs sm:text-sm text-center sm:text-left">
           Showing {table.getRowModel().rows.length} of {data.length} business(es)
         </div>
-        <div className="space-x-2">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            className="min-h-[44px]"
           >
             Previous
           </Button>
@@ -348,6 +349,7 @@ export function BusinessDataTable({ data }: BusinessDataTableProps) {
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            className="min-h-[44px]"
           >
             Next
           </Button>
