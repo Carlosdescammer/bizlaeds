@@ -240,11 +240,11 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
     const score = business.relevanceScore
     const percentage = score
 
-    let color = 'text-gray-600'
-    if (score >= 80) color = 'text-green-600'
-    else if (score >= 60) color = 'text-blue-600'
-    else if (score >= 40) color = 'text-yellow-600'
-    else color = 'text-red-600'
+    let color = 'text-muted-foreground'
+    if (score >= 80) color = 'text-green-600 dark:text-green-400'
+    else if (score >= 60) color = 'text-blue-600 dark:text-blue-400'
+    else if (score >= 40) color = 'text-yellow-600 dark:text-yellow-400'
+    else color = 'text-red-600 dark:text-red-400'
 
     return (
       <div className="space-y-2">
@@ -282,11 +282,11 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
       <CardContent className="space-y-6">
         {/* Lead Score Display */}
         {business.relevanceScore && (
-          <div className="rounded-lg border bg-gradient-to-r from-purple-50 to-blue-50 p-4">
+          <div className="rounded-lg border bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-purple-600" />
-                <span className="font-semibold">Lead Quality</span>
+                <Award className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <span className="font-semibold text-foreground">Lead Quality</span>
               </div>
               {renderPriorityBadge()}
             </div>
@@ -405,7 +405,7 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
 
         {/* Hunter Stats */}
         {business.hunterEmailCount !== null && business.hunterEmailCount !== undefined && (
-          <div className="flex items-center justify-between text-sm p-3 rounded-lg bg-blue-50 border border-blue-100">
+          <div className="flex items-center justify-between text-sm p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800">
             <span className="text-muted-foreground">Available Emails</span>
             <Badge variant="secondary">{business.hunterEmailCount} contacts</Badge>
           </div>
@@ -527,10 +527,10 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
 
           {/* Auto Enrichment */}
           <TabsContent value="auto" className="space-y-3 mt-4">
-            <div className="rounded-lg border p-3 bg-gradient-to-r from-purple-50 to-blue-50">
+            <div className="rounded-lg border p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-purple-600" />
-                <span className="font-medium text-sm">Full Auto-Enrichment</span>
+                <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <span className="font-medium text-sm text-foreground">Full Auto-Enrichment</span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
                 Automatically runs all enrichment steps: Email Count, Company Enrichment,
@@ -568,22 +568,22 @@ export function HunterEnrichmentPanel({ business, onRefresh }: HunterEnrichmentP
 
         {/* Results Display */}
         {enrichmentResult && (
-          <div className={`rounded-lg border p-4 ${enrichmentResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className={`rounded-lg border p-4 ${enrichmentResult.success ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'}`}>
             <div className="flex items-start gap-2">
               {enrichmentResult.success ? (
-                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
               )}
               <div className="flex-1">
-                <div className="font-medium text-sm mb-1">
+                <div className="font-medium text-sm mb-1 text-foreground">
                   {enrichmentResult.success ? 'Success!' : 'Error'}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {enrichmentResult.error || 'Enrichment completed successfully'}
                 </div>
                 {enrichmentResult.leadScore && (
-                  <div className="mt-2 text-sm font-medium">
+                  <div className="mt-2 text-sm font-medium text-foreground">
                     Lead Score: {enrichmentResult.leadScore}/100
                   </div>
                 )}

@@ -128,15 +128,15 @@ export function LiveBusinessCounter({
           {/* Status Breakdown */}
           <div className="grid grid-cols-3 gap-4 pt-4 border-t">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.approved.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.approved.toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">Approved</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending.toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">Pending</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-400">{stats.archived.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-muted-foreground">{stats.archived.toLocaleString()}</div>
               <div className="text-xs text-muted-foreground">Archived</div>
             </div>
           </div>
@@ -144,8 +144,8 @@ export function LiveBusinessCounter({
           {/* Recent Activity */}
           {stats.recentlyAdded > 0 && (
             <div className="flex items-center justify-center gap-2 pt-3 border-t">
-              <TrendingUp className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-600">
+              <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-medium text-green-600 dark:text-green-400">
                 +{stats.recentlyAdded} added in last 24 hours
               </span>
             </div>
@@ -154,15 +154,15 @@ export function LiveBusinessCounter({
           {/* Enrichment Stats */}
           <div className="grid grid-cols-3 gap-2 pt-3 border-t">
             <div className="text-center">
-              <div className="text-sm font-semibold text-blue-600">{stats.enrichment.google}</div>
+              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">{stats.enrichment.google}</div>
               <div className="text-xs text-muted-foreground">Google</div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-semibold text-purple-600">{stats.enrichment.hunter}</div>
+              <div className="text-sm font-semibold text-purple-600 dark:text-purple-400">{stats.enrichment.hunter}</div>
               <div className="text-xs text-muted-foreground">Hunter</div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-semibold text-green-600">{stats.enrichment.verified}</div>
+              <div className="text-sm font-semibold text-green-600 dark:text-green-400">{stats.enrichment.verified}</div>
               <div className="text-xs text-muted-foreground">Verified</div>
             </div>
           </div>

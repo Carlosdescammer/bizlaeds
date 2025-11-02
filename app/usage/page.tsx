@@ -64,13 +64,13 @@ export default function UsagePage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ok':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100 border-green-200 dark:border-green-800';
       case 'warning':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-100 border-yellow-200 dark:border-yellow-800';
       case 'critical':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-100 border-red-200 dark:border-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -173,8 +173,8 @@ export default function UsagePage() {
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-card rounded-lg shadow-md p-6 border">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="font-medium text-muted-foreground">Total Cost</h3>
             </div>
@@ -186,8 +186,8 @@ export default function UsagePage() {
 
           <div className="bg-card rounded-lg shadow-md p-6 border">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-indigo-600" />
+              <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <h3 className="font-medium text-muted-foreground">Total Requests</h3>
             </div>
@@ -199,8 +199,8 @@ export default function UsagePage() {
 
           <div className="bg-card rounded-lg shadow-md p-6 border">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Activity className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-950 rounded-lg flex items-center justify-center">
+                <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <h3 className="font-medium text-muted-foreground">Active Alerts</h3>
             </div>
@@ -217,15 +217,15 @@ export default function UsagePage() {
 
           <div className="space-y-6">
             {(usageData?.services || []).map((service: ServiceUsage) => (
-              <div key={service.service} className="border-b border-gray-200 last:border-0 pb-6 last:pb-0">
+              <div key={service.service} className="border-b border-border last:border-0 pb-6 last:pb-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(service.status)}
                     <div>
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-foreground">
                         {getServiceName(service.service)}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {service.service === 'hunter_io'
                           ? `${Number(service.estimatedCost).toFixed(1)} credits used`
                           : service.service === 'openai' || service.service.includes('linkedin')
@@ -246,7 +246,7 @@ export default function UsagePage() {
 
                 {/* Progress Bar */}
                 <div className="relative">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-muted rounded-full h-3">
                     <div
                       className={`h-3 rounded-full transition-all ${getProgressColor(
                         service.status
@@ -259,13 +259,13 @@ export default function UsagePage() {
                   <div className="relative h-6 mt-1">
                     <div className="absolute left-[80%] transform -translate-x-1/2">
                       <div className="w-px h-4 bg-yellow-400" />
-                      <span className="text-xs text-gray-500 absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">
                         80%
                       </span>
                     </div>
                     <div className="absolute left-[94%] transform -translate-x-1/2">
                       <div className="w-px h-4 bg-red-400" />
-                      <span className="text-xs text-gray-500 absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">
                         94%
                       </span>
                     </div>
@@ -273,7 +273,7 @@ export default function UsagePage() {
                 </div>
 
                 {/* Limit Info */}
-                <div className="flex justify-between text-sm text-gray-600 mt-2">
+                <div className="flex justify-between text-sm text-muted-foreground mt-2">
                   <span>
                     {service.service === 'hunter_io'
                       ? `${Number(service.estimatedCost).toFixed(1)} of ${service.limit} credits`
@@ -292,13 +292,13 @@ export default function UsagePage() {
 
                 {/* Warning Messages */}
                 {service.status === 'warning' && (
-                  <div className="mt-3 flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div className="mt-3 flex items-start gap-2 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-yellow-900">
+                      <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
                         Approaching limit
                       </p>
-                      <p className="text-sm text-yellow-700">
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
                         You've used over 80% of your free tier. Consider upgrading or reducing usage.
                       </p>
                     </div>
@@ -306,13 +306,13 @@ export default function UsagePage() {
                 )}
 
                 {service.status === 'critical' && (
-                  <div className="mt-3 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                  <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-red-900">
+                      <p className="text-sm font-medium text-red-900 dark:text-red-100">
                         Critical: Near limit!
                       </p>
-                      <p className="text-sm text-red-700">
+                      <p className="text-sm text-red-700 dark:text-red-300">
                         You've used over 94% of your free tier. Service may be interrupted soon.
                       </p>
                     </div>
@@ -333,18 +333,18 @@ export default function UsagePage() {
                   key={alert.id}
                   className={`flex items-start gap-3 p-4 rounded-lg border ${
                     alert.alertLevel === 'critical'
-                      ? 'bg-red-50 border-red-200'
-                      : 'bg-yellow-50 border-yellow-200'
+                      ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                      : 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
                   }`}
                 >
                   {alert.alertLevel === 'critical' ? (
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
                   ) : (
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                   )}
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{alert.message}</p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="font-medium text-foreground">{alert.message}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       {getServiceName(alert.service)} •{' '}
                       {new Date(alert.createdAt).toLocaleString()}
                     </p>
@@ -362,54 +362,54 @@ export default function UsagePage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                       Time
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                       Service
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                       Type
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                       Business
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
                       Cost
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {usageData.recentLogs.map((log: any) => (
-                    <tr key={log.id} className="border-b border-gray-100 last:border-0">
-                      <td className="py-3 px-4 text-sm text-gray-600">
+                    <tr key={log.id} className="border-b border-border last:border-0">
+                      <td className="py-3 px-4 text-sm text-muted-foreground">
                         {new Date(log.createdAt).toLocaleTimeString()}
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-900">
+                      <td className="py-3 px-4 text-sm text-foreground">
                         {getServiceName(log.service)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
+                      <td className="py-3 px-4 text-sm text-muted-foreground">
                         {log.requestType}
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-600">
+                      <td className="py-3 px-4 text-sm text-muted-foreground">
                         {log.business?.businessName || '-'}
                       </td>
                       <td className="py-3 px-4">
                         <span
                           className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                             log.success
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100'
+                              : 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-100'
                           }`}
                         >
                           {log.success ? 'Success' : 'Failed'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-900 text-right">
+                      <td className="py-3 px-4 text-sm text-foreground text-right">
                         ${Number(log.estimatedCost).toFixed(3)}
                       </td>
                     </tr>

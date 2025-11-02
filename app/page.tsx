@@ -148,8 +148,8 @@ function HomeContent() {
 
         {/* Upload Area */}
         <div className="bg-card rounded-2xl shadow-xl p-8 mb-8 border">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-900">
+          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-900 dark:text-blue-100">
               <strong>iPhone users:</strong> If you get an error, go to Settings → Camera → Formats and select "Most Compatible" to save photos as JPEG instead of HEIC.
             </p>
           </div>
@@ -195,52 +195,52 @@ function HomeContent() {
 
             {/* Status Messages */}
             {uploading && (
-              <div className="flex items-center justify-center gap-3 text-blue-600 bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center justify-center gap-3 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 rounded-lg p-4">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="font-medium">Uploading photo...</span>
               </div>
             )}
 
             {processing && (
-              <div className="flex items-center justify-center gap-3 text-indigo-600 bg-indigo-50 rounded-lg p-4">
+              <div className="flex items-center justify-center gap-3 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 rounded-lg p-4">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="font-medium">Processing with AI...</span>
               </div>
             )}
 
             {error && (
-              <div className="flex items-center gap-3 text-red-600 bg-red-50 rounded-lg p-4">
+              <div className="flex items-center gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 rounded-lg p-4">
                 <XCircle className="w-5 h-5" />
                 <span className="font-medium">{error}</span>
               </div>
             )}
 
             {result?.success && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+              <div className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 rounded-lg p-6">
                 <div className="flex items-start gap-3 mb-4">
-                  <CheckCircle2 className="w-6 h-6 text-green-600 mt-1" />
+                  <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 mt-1" />
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-green-900 mb-2">
+                    <h3 className="text-xl font-bold text-green-900 dark:text-green-100 mb-2">
                       {result.count > 1 ? `${result.count} Businesses Found!` : 'Business Found!'}
                     </h3>
                     {result.isMultiTenant && result.buildingName && (
-                      <p className="text-gray-700 mb-3">
+                      <p className="text-foreground/90 mb-3">
                         <span className="font-semibold">Building:</span> {result.buildingName}
                       </p>
                     )}
                     <div className="space-y-4">
                       {result.businesses && result.businesses.map((business: any, index: number) => (
-                        <div key={business.id} className="bg-white rounded-lg p-4 border border-green-200">
+                        <div key={business.id} className="bg-card rounded-lg p-4 border border-green-200 dark:border-green-800">
                           <div className="space-y-2">
-                            <p className="text-gray-800 font-semibold text-lg">
+                            <p className="text-foreground font-semibold text-lg">
                               {business.name}
-                              {business.suite && <span className="text-sm text-gray-600 ml-2">(Suite {business.suite})</span>}
+                              {business.suite && <span className="text-sm text-muted-foreground ml-2">(Suite {business.suite})</span>}
                             </p>
-                            <p className="text-gray-700 text-sm">
+                            <p className="text-foreground/90 text-sm">
                               <span className="font-semibold">Type:</span>{' '}
                               {business.type || 'Unknown'}
                             </p>
-                            <p className="text-gray-700 text-sm">
+                            <p className="text-foreground/90 text-sm">
                               <span className="font-semibold">Confidence:</span>{' '}
                               {Math.round((business.confidence || 0) * 100)}%
                             </p>
@@ -270,8 +270,8 @@ function HomeContent() {
         {/* Features */}
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-card rounded-xl p-6 shadow-md border">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <Camera className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center mb-4">
+              <Camera className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <h3 className="font-bold text-lg mb-2 text-foreground">Quick Capture</h3>
             <p className="text-muted-foreground">
@@ -280,9 +280,9 @@ function HomeContent() {
           </div>
 
           <div className="bg-card rounded-xl p-6 shadow-md border">
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center mb-4">
               <svg
-                className="w-6 h-6 text-indigo-600"
+                className="w-6 h-6 text-indigo-600 dark:text-indigo-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -302,9 +302,9 @@ function HomeContent() {
           </div>
 
           <div className="bg-card rounded-xl p-6 shadow-md border">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center mb-4">
               <svg
-                className="w-6 h-6 text-green-600"
+                className="w-6 h-6 text-green-600 dark:text-green-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

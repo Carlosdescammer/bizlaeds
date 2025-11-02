@@ -80,7 +80,7 @@ export default function LeadsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Spinner size="lg" className="text-primary" />
       </div>
     );

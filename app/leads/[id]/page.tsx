@@ -483,34 +483,34 @@ export default function BusinessDetailPage() {
                         Contact Readiness
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <div className={`p-3 rounded-lg border ${business.email ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className={`p-3 rounded-lg border ${business.email ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-muted border-border'}`}>
                           <div className="flex items-center gap-2">
-                            <Mail className={`w-4 h-4 ${business.email ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className={`text-sm font-medium ${business.email ? 'text-green-900' : 'text-gray-500'}`}>
+                            <Mail className={`w-4 h-4 ${business.email ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                            <span className={`text-sm font-medium ${business.email ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
                               {business.email ? 'Email ✓' : 'No Email'}
                             </span>
                           </div>
                           {business.email && (
-                            <p className="text-xs text-green-700 mt-1 truncate">{business.email}</p>
+                            <p className="text-xs text-green-700 dark:text-green-300 mt-1 truncate">{business.email}</p>
                           )}
                         </div>
 
-                        <div className={`p-3 rounded-lg border ${business.phone ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className={`p-3 rounded-lg border ${business.phone ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-muted border-border'}`}>
                           <div className="flex items-center gap-2">
-                            <Phone className={`w-4 h-4 ${business.phone ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className={`text-sm font-medium ${business.phone ? 'text-green-900' : 'text-gray-500'}`}>
+                            <Phone className={`w-4 h-4 ${business.phone ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                            <span className={`text-sm font-medium ${business.phone ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
                               {business.phone ? 'Phone ✓' : 'No Phone'}
                             </span>
                           </div>
                           {business.phone && (
-                            <p className="text-xs text-green-700 mt-1">{business.phone}</p>
+                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">{business.phone}</p>
                           )}
                         </div>
 
-                        <div className={`p-3 rounded-lg border ${business.website ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className={`p-3 rounded-lg border ${business.website ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-muted border-border'}`}>
                           <div className="flex items-center gap-2">
-                            <Globe className={`w-4 h-4 ${business.website ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className={`text-sm font-medium ${business.website ? 'text-green-900' : 'text-gray-500'}`}>
+                            <Globe className={`w-4 h-4 ${business.website ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                            <span className={`text-sm font-medium ${business.website ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
                               {business.website ? 'Website ✓' : 'No Website'}
                             </span>
                           </div>
@@ -527,15 +527,15 @@ export default function BusinessDetailPage() {
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {business.googleRating && (
-                            <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                            <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
                               <div className="flex items-center gap-2">
                                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm font-medium text-yellow-900">
+                                <span className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
                                   {Number(business.googleRating).toFixed(1)} Stars
                                 </span>
                               </div>
                               {business.googleReviewCount && (
-                                <p className="text-xs text-yellow-700 mt-1">{business.googleReviewCount} reviews</p>
+                                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">{business.googleReviewCount} reviews</p>
                               )}
                             </div>
                           )}
@@ -543,13 +543,13 @@ export default function BusinessDetailPage() {
                           {business.googleBusinessHours && (
                             <div className={`p-3 rounded-lg border ${
                               timing.status === 'open'
-                                ? 'bg-green-50 border-green-200'
-                                : 'bg-red-50 border-red-200'
+                                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                                : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
                             }`}>
                               <div className="flex items-center gap-2">
                                 <Clock className={`w-4 h-4 ${timing.statusColor}`} />
                                 <span className={`text-sm font-medium ${
-                                  timing.status === 'open' ? 'text-green-900' : 'text-red-900'
+                                  timing.status === 'open' ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'
                                 }`}>
                                   {timing.message}
                                 </span>
@@ -558,10 +558,10 @@ export default function BusinessDetailPage() {
                           )}
 
                           {business.googlePriceLevel && (
-                            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
                               <div className="flex items-center gap-2">
-                                <DollarSign className="w-4 h-4 text-blue-600" />
-                                <span className="text-sm font-medium text-blue-900">
+                                <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
                                   {'$'.repeat(business.googlePriceLevel)} Pricing
                                 </span>
                               </div>
@@ -584,10 +584,10 @@ export default function BusinessDetailPage() {
                               key={idx}
                               className={`p-3 rounded-lg border text-sm ${
                                 insight.type === 'positive'
-                                  ? 'bg-green-50 border-green-200 text-green-900'
+                                  ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100'
                                   : insight.type === 'negative'
-                                  ? 'bg-red-50 border-red-200 text-red-900'
-                                  : 'bg-blue-50 border-blue-200 text-blue-900'
+                                  ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100'
+                                  : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100'
                               }`}
                             >
                               <span className="mr-2">{insight.icon}</span>
@@ -624,8 +624,8 @@ export default function BusinessDetailPage() {
                         </h4>
                         <div className="space-y-2">
                           {talkingPoints.map((point, idx) => (
-                            <div key={idx} className="p-3 rounded-lg bg-purple-50 border border-purple-200">
-                              <p className="text-sm text-purple-900 italic">{point}</p>
+                            <div key={idx} className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800">
+                              <p className="text-sm text-purple-900 dark:text-purple-100 italic">{point}</p>
                             </div>
                           ))}
                         </div>
@@ -971,7 +971,7 @@ export default function BusinessDetailPage() {
                   <div className="space-y-4">
                     {!business.email ? (
                       <div className="text-center py-8">
-                        <p className="text-gray-600">No email address available</p>
+                        <p className="text-muted-foreground">No email address available</p>
                       </div>
                     ) : (
                       <>
@@ -993,13 +993,13 @@ export default function BusinessDetailPage() {
                         ) : (
                           <>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
                                 To: {emailDraft.recipient}
                               </label>
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
                                 Subject
                               </label>
                               <input
@@ -1008,12 +1008,12 @@ export default function BusinessDetailPage() {
                                 onChange={(e) =>
                                   setEmailDraft({ ...emailDraft, subject: e.target.value })
                                 }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary"
                               />
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                              <label className="block text-sm font-medium text-muted-foreground mb-2">
                                 Message
                               </label>
                               <textarea
@@ -1022,7 +1022,7 @@ export default function BusinessDetailPage() {
                                   setEmailDraft({ ...emailDraft, body: e.target.value })
                                 }
                                 rows={12}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary font-mono text-sm"
                               />
                             </div>
 
@@ -1059,22 +1059,22 @@ export default function BusinessDetailPage() {
                               {business.emailCampaigns.map((campaign: any) => (
                                 <div
                                   key={campaign.id}
-                                  className="border border-gray-200 rounded-lg p-4"
+                                  className="border border-border rounded-lg p-4 bg-card"
                                 >
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium">{campaign.subject || 'No subject'}</span>
+                                    <span className="font-medium text-foreground">{campaign.subject || 'No subject'}</span>
                                     <span
                                       className={`px-2 py-1 rounded text-xs font-medium ${
                                         campaign.sent
-                                          ? 'bg-green-100 text-green-800'
-                                          : 'bg-gray-100 text-gray-800'
+                                          ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100'
+                                          : 'bg-muted text-foreground'
                                       }`}
                                     >
                                       {campaign.sent ? 'sent' : 'draft'}
                                     </span>
                                   </div>
                                   {campaign.sentAt && (
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-muted-foreground">
                                       <Calendar className="w-4 h-4 inline mr-1" />
                                       {new Date(campaign.sentAt).toLocaleString()}
                                     </p>
@@ -1095,17 +1095,17 @@ export default function BusinessDetailPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Status Card */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="font-bold text-lg mb-4">Review Status</h3>
+            <div className="bg-card rounded-lg shadow-md p-6 border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">Review Status</h3>
 
               <div className="mb-4">
                 <span
                   className={`inline-block px-4 py-2 rounded-lg font-medium ${
                     business.reviewStatus === 'approved'
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100'
                       : business.reviewStatus === 'rejected'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-100'
+                      : 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-100'
                   }`}
                 >
                   {business.reviewStatus.replace('_', ' ').toUpperCase()}
@@ -1135,10 +1135,10 @@ export default function BusinessDetailPage() {
 
               {business.confidenceScore !== null && (
                 <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                  <label className="text-sm font-medium text-muted-foreground block mb-2">
                     AI Confidence
                   </label>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {Math.round(Number(business.confidenceScore) * 100)}%
                   </div>
                 </div>
@@ -1146,30 +1146,30 @@ export default function BusinessDetailPage() {
             </div>
 
             {/* Metadata */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="font-bold text-lg mb-4">Metadata</h3>
+            <div className="bg-card rounded-lg shadow-md p-6 border">
+              <h3 className="font-bold text-lg mb-4 text-foreground">Metadata</h3>
               <div className="space-y-3 text-sm">
                 <div>
-                  <label className="text-gray-500">Created</label>
-                  <p className="text-gray-900">
+                  <label className="text-muted-foreground">Created</label>
+                  <p className="text-foreground">
                     {new Date(business.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 {business.approvedAt && (
                   <div>
-                    <label className="text-gray-500">Approved</label>
-                    <p className="text-gray-900">
+                    <label className="text-muted-foreground">Approved</label>
+                    <p className="text-foreground">
                       {new Date(business.approvedAt).toLocaleDateString()}
                     </p>
                   </div>
                 )}
                 <div>
-                  <label className="text-gray-500">Photos</label>
-                  <p className="text-gray-900">{business.photos.length}</p>
+                  <label className="text-muted-foreground">Photos</label>
+                  <p className="text-foreground">{business.photos.length}</p>
                 </div>
                 <div>
-                  <label className="text-gray-500">Emails Sent</label>
-                  <p className="text-gray-900">
+                  <label className="text-muted-foreground">Emails Sent</label>
+                  <p className="text-foreground">
                     {business.emailCampaigns.filter((c: any) => c.status === 'sent').length}
                   </p>
                 </div>
