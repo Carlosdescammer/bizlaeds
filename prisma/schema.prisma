@@ -69,7 +69,7 @@ model Business {
   serviceSegment     String?   @map("service_segment") @db.VarChar(100)
   relevanceScore     Int?      @default(0) @map("relevance_score")
 
-  // Company Enrichment (Clearbit/Apollo)
+  // Company Enrichment (Clearbit/Apollo/Hunter)
   companySize        String?   @map("company_size") @db.VarChar(50)
   companyRevenue     String?   @map("company_revenue") @db.VarChar(50)
   foundedYear        Int?      @map("founded_year")
@@ -79,6 +79,29 @@ model Business {
   facebookUrl        String?   @map("facebook_url") @db.VarChar(500)
   enrichedByService  String?   @map("enriched_by_service") @db.VarChar(50)
   enrichedAt         DateTime? @map("enriched_at") @db.Timestamp(6)
+
+  // Hunter.io Enrichment Data
+  hunterEmailPattern    String?   @map("hunter_email_pattern") @db.VarChar(100)
+  hunterEmailCount      Int?      @map("hunter_email_count")
+  hunterVerificationStatus String? @map("hunter_verification_status") @db.VarChar(20)
+  hunterVerificationScore  Int?    @map("hunter_verification_score")
+  hunterVerifiedAt      DateTime? @map("hunter_verified_at") @db.Timestamp(6)
+  hunterEnrichedAt      DateTime? @map("hunter_enriched_at") @db.Timestamp(6)
+
+  // Contact Person Details (from Hunter Email Finder/Enrichment)
+  contactPosition       String?   @map("contact_position") @db.VarChar(200)
+  contactSeniority      String?   @map("contact_seniority") @db.VarChar(50)
+  contactDepartment     String?   @map("contact_department") @db.VarChar(100)
+  contactLinkedin       String?   @map("contact_linkedin") @db.VarChar(500)
+  contactTwitter        String?   @map("contact_twitter") @db.VarChar(100)
+  contactPhoneNumber    String?   @map("contact_phone_number") @db.VarChar(50)
+  contactLocation       String?   @map("contact_location") @db.VarChar(200)
+  contactTimezone       String?   @map("contact_timezone") @db.VarChar(50)
+
+  // Email Quality Metrics
+  emailConfidence       Int?      @map("email_confidence")
+  emailDeliverability   String?   @map("email_deliverability") @db.VarChar(20)
+  emailRiskLevel        String?   @map("email_risk_level") @db.VarChar(20)
 
   // Lead Status & Priority
   leadPriority       String    @default("medium") @map("lead_priority") @db.VarChar(20)

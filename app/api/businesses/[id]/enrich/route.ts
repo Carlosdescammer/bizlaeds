@@ -231,6 +231,15 @@ export async function POST(
 
         const domain = new URL(websiteUrl).hostname;
 
+        // Check if API key is available
+        if (!process.env.HUNTER_API_KEY) {
+          console.error('Hunter.io API key is not configured');
+          await logApiUsage('hunter_io', businessId, 0.001, false, 'API key not configured');
+          return NextResponse.json({ error: 'Hunter.io API key is not configured' }, { status: 500 });
+        }
+
+        console.log('Hunter.io request for domain:', domain);
+
         const hunterResponse = await axios.get('https://api.hunter.io/v2/domain-search', {
           params: {
             domain,
@@ -271,8 +280,21 @@ export async function POST(
           return NextResponse.json({ error: 'No emails found' }, { status: 404 });
         }
       } catch (error: any) {
+        console.error('Hunter.io error details:', {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+
         await logApiUsage('hunter_io', businessId, 0.001, false, error.message);
-        return NextResponse.json({ error: 'Hunter.io lookup failed: ' + error.message }, { status: 500 });
+
+        // Provide more detailed error message
+        const errorMessage = error.response?.data?.errors?.[0]?.details || error.response?.data?.message || error.message;
+        return NextResponse.json({
+          error: 'Hunter.io lookup failed: ' + errorMessage,
+          details: error.response?.data
+        }, { status: error.response?.status || 500 });
       }
     }
 

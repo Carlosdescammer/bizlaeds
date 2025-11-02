@@ -289,9 +289,9 @@ IMPORTANT:
       }
 
       // Build business data
-      const businessAddress = businessData.suite_number
+      const businessAddress = businessData.suite_number && fullAddress
         ? `${fullAddress} Suite ${businessData.suite_number}`
-        : fullAddress;
+        : fullAddress || null;
 
       const businessDataToSave = {
         businessName: businessData.business_name,
