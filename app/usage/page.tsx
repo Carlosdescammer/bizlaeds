@@ -113,6 +113,62 @@ export default function UsagePage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hunter.io Live Credits Banner */}
+        {usageData?.hunterLive && (
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg shadow-md p-6 mb-6 border-2 border-purple-200 dark:border-purple-800">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-2">
+                  <span className="text-2xl">🎯</span>
+                  Hunter.io Live Credits
+                  <span className="text-sm font-normal px-2 py-1 rounded-full bg-purple-600 text-white">
+                    {usageData.hunterLive.plan}
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Total Credits</p>
+                    <p className="text-3xl font-bold text-purple-600">
+                      {usageData.hunterLive.credits.available}
+                      <span className="text-base text-muted-foreground ml-2">
+                        / {usageData.hunterLive.credits.total}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {usageData.hunterLive.credits.used} credits used
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Searches</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {usageData.hunterLive.searches.available}
+                      <span className="text-sm text-muted-foreground ml-2">available</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {usageData.hunterLive.searches.used} used
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Verifications</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {usageData.hunterLive.verifications.available}
+                      <span className="text-sm text-muted-foreground ml-2">available</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {usageData.hunterLive.verifications.used} used
+                    </p>
+                  </div>
+                </div>
+                {usageData.hunterLive.resetDate && (
+                  <p className="text-sm text-muted-foreground mt-4">
+                    ⏱️ Resets on: <strong>{new Date(usageData.hunterLive.resetDate).toLocaleDateString()}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-card rounded-lg shadow-md p-6 border">
@@ -170,8 +226,12 @@ export default function UsagePage() {
                         {getServiceName(service.service)}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {service.requestsCount} requests
-                        {service.estimatedCost > 0 && ` • $${Number(service.estimatedCost).toFixed(2)}`}
+                        {service.service === 'hunter_io'
+                          ? `${Number(service.estimatedCost).toFixed(1)} credits used`
+                          : service.service === 'openai' || service.service.includes('linkedin')
+                          ? `${service.requestsCount} requests • $${Number(service.estimatedCost).toFixed(2)}`
+                          : `${service.requestsCount} requests`
+                        }
                       </p>
                     </div>
                   </div>
@@ -215,12 +275,16 @@ export default function UsagePage() {
                 {/* Limit Info */}
                 <div className="flex justify-between text-sm text-gray-600 mt-2">
                   <span>
-                    {service.service === 'openai'
+                    {service.service === 'hunter_io'
+                      ? `${Number(service.estimatedCost).toFixed(1)} of ${service.limit} credits`
+                      : service.service === 'openai' || service.service.includes('linkedin')
                       ? `$${Number(service.estimatedCost).toFixed(2)} of $${service.limit} budget`
                       : `${service.requestsCount} of ${service.limit} requests`}
                   </span>
                   <span>
-                    {service.service === 'openai'
+                    {service.service === 'hunter_io'
+                      ? `${Number(service.limit - Number(service.estimatedCost)).toFixed(1)} credits remaining`
+                      : service.service === 'openai' || service.service.includes('linkedin')
                       ? `$${Number(service.limit - Number(service.estimatedCost)).toFixed(2)} remaining`
                       : `${service.limit - service.requestsCount} remaining`}
                   </span>

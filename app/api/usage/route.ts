@@ -19,7 +19,7 @@ const LIMITS = {
     critical_threshold: 0.94,
   },
   hunter_io: {
-    monthly_requests: 50, // Free tier
+    monthly_credits: 50, // Free tier credits (not requests!)
     warning_threshold: 0.8,
     critical_threshold: 0.94,
   },
@@ -38,16 +38,23 @@ const LIMITS = {
 // Calculate usage percentage and status
 function calculateUsageStatus(service: string, usage: any) {
   const limits = LIMITS[service as keyof typeof LIMITS];
-  if (!limits) return { percentage: 0, status: 'unknown' };
+  if (!limits) return { percentage: 0, status: 'unknown', limit: 0 };
 
   let percentage = 0;
+  let limit = 0;
 
   if ('monthly_budget' in limits) {
-    // Cost-based (OpenAI)
+    // Cost-based (OpenAI, LinkedIn APIs)
     percentage = (usage.estimatedCost || 0) / limits.monthly_budget;
+    limit = limits.monthly_budget;
+  } else if ('monthly_credits' in limits) {
+    // Credit-based (Hunter.io)
+    percentage = (usage.estimatedCost || 0) / limits.monthly_credits;
+    limit = limits.monthly_credits;
   } else if ('monthly_requests' in limits) {
-    // Request-based (Google Maps, Hunter.io)
+    // Request-based (Google Maps, Vision)
     percentage = (usage.requestsCount || 0) / limits.monthly_requests;
+    limit = limits.monthly_requests;
   }
 
   let status = 'ok';
@@ -60,7 +67,7 @@ function calculateUsageStatus(service: string, usage: any) {
   return {
     percentage: Math.min(percentage * 100, 100),
     status,
-    limit: 'monthly_budget' in limits ? limits.monthly_budget : limits.monthly_requests,
+    limit,
   };
 }
 
@@ -137,6 +144,38 @@ export async function GET(request: NextRequest) {
     const totalCost = usageData.reduce((sum, u) => sum + Number(u.estimatedCost || 0), 0);
     const totalRequests = usageData.reduce((sum, u) => sum + (u.requestsCount || 0), 0);
 
+    // Get live Hunter.io account info
+    let hunterLiveData = null;
+    try {
+      if (process.env.HUNTER_API_KEY) {
+        const hunterResponse = await fetch(
+          `https://api.hunter.io/v2/account?api_key=${process.env.HUNTER_API_KEY}`
+        );
+        if (hunterResponse.ok) {
+          const hunterData = await hunterResponse.json();
+          hunterLiveData = {
+            credits: {
+              used: hunterData.data?.requests?.credits?.used || 0,
+              available: hunterData.data?.requests?.credits?.available || 50,
+              total: (hunterData.data?.requests?.credits?.used || 0) + (hunterData.data?.requests?.credits?.available || 50),
+            },
+            searches: {
+              used: hunterData.data?.requests?.searches?.used || 0,
+              available: hunterData.data?.requests?.searches?.available || 25,
+            },
+            verifications: {
+              used: hunterData.data?.requests?.verifications?.used || 0,
+              available: hunterData.data?.requests?.verifications?.available || 50,
+            },
+            resetDate: hunterData.data?.reset_date || null,
+            plan: hunterData.data?.plan_name || 'Free',
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch Hunter.io live data:', error);
+    }
+
     return NextResponse.json({
       month,
       services: usageStats,
@@ -146,6 +185,7 @@ export async function GET(request: NextRequest) {
       },
       alerts,
       recentLogs: logs,
+      hunterLive: hunterLiveData,
     });
   } catch (error: any) {
     console.error('Usage stats error:', error);
