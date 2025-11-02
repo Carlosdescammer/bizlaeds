@@ -6,6 +6,7 @@ import Link from 'next/link';
 import imageCompression from 'browser-image-compression';
 import { useUser } from '@stackframe/stack';
 import { ModeToggle } from '@/components/mode-toggle';
+import { LiveBusinessCounter } from '@/components/live-business-counter';
 
 function HomeContent() {
   const user = useUser();
@@ -145,6 +146,11 @@ function HomeContent() {
           <p className="text-base sm:text-lg text-muted-foreground px-2">
             Take a photo of any business and let AI extract contact information
           </p>
+        </div>
+
+        {/* Live Business Counter */}
+        <div className="mb-6 sm:mb-8">
+          <LiveBusinessCounter variant="compact" refreshInterval={30000} />
         </div>
 
         {/* Upload Area */}
