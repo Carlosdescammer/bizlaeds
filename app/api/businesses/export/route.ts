@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
         // Company name
         const companyName = escapeCsvValue(business.businessName || '');
 
-        // Business number (could be a secondary phone or leave empty)
-        const businessNumber = business.website || '';
+        // Business number - use phone as business number
+        const businessNumber = business.phone || '';
 
         // Address components - use formattedAddress if available
         let streetAddress = '';
