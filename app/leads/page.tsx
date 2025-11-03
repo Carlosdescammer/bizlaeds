@@ -117,6 +117,14 @@ export default function LeadsPage() {
                   <span className="hidden sm:inline">Usage</span>
                 </Button>
               </Link>
+              <Link href="/compose" className="flex-1 sm:flex-initial">
+                <Button variant="outline" size="sm" className="w-full">
+                  <svg className="w-4 h-4 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  <span className="hidden sm:inline">Compose</span>
+                </Button>
+              </Link>
               <ModeToggle />
             </nav>
           </div>

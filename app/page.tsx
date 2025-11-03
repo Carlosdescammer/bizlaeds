@@ -115,6 +115,13 @@ function HomeContent() {
               >
                 Usage
               </Link>
+              <Link
+                href="/compose"
+                className="text-muted-foreground hover:text-foreground font-medium text-sm sm:text-base"
+              >
+                <span className="hidden sm:inline">Compose</span>
+                <span className="sm:hidden">Email</span>
+              </Link>
               <ModeToggle />
               {user ? (
                 <button
