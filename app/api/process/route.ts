@@ -293,6 +293,12 @@ IMPORTANT:
         ? `${fullAddress} Suite ${businessData.suite_number}`
         : fullAddress || null;
 
+      // Skip this business if we don't have an address (required for unique constraint)
+      if (!businessAddress) {
+        console.warn(`Skipping business "${businessData.business_name}" - no address found`);
+        continue;
+      }
+
       const businessDataToSave = {
         businessName: businessData.business_name,
         businessType: businessData.business_type || (extractedData.is_multi_tenant ? 'Office/Suite' : null),

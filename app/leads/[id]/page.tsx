@@ -434,10 +434,10 @@ export default function BusinessDetailPage() {
                     {business.googlePhotosData.slice(0, 9).map((photo: any, idx: number) => (
                       <div key={idx} className="aspect-square sm:aspect-video rounded-lg overflow-hidden border border-border bg-muted">
                         <img
-                          src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`}
+                          src={`/api/google-photo?photo_reference=${photo.photo_reference}&maxwidth=400`}
                           alt={`${business.businessName} photo ${idx + 1}`}
                           className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => window.open(`https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photo_reference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`, '_blank')}
+                          onClick={() => window.open(`/api/google-photo?photo_reference=${photo.photo_reference}&maxwidth=1600`, '_blank')}
                         />
                       </div>
                     ))}
