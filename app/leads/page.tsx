@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { ModeToggle } from '@/components/mode-toggle';
+import { useToast } from '@/hooks/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 type Business = {
   id: string;
@@ -29,6 +31,7 @@ type Business = {
 };
 
 export default function LeadsPage() {
+  const { toast } = useToast();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -40,7 +43,32 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchBusinesses();
-  }, []);
+
+    // Listen for telegram-sent events
+    const handleTelegramSent = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        success: boolean;
+        businessName?: string;
+        error?: string;
+      }>;
+      const { success, businessName, error } = customEvent.detail;
+      if (success) {
+        toast({
+          title: 'Sent to Telegram!',
+          description: `Business info for "${businessName}" sent successfully`,
+        });
+      } else {
+        toast({
+          title: 'Failed to send',
+          description: error || 'Could not send to Telegram',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    window.addEventListener('telegram-sent', handleTelegramSent);
+    return () => window.removeEventListener('telegram-sent', handleTelegramSent);
+  }, [toast]);
 
   const fetchBusinesses = async () => {
     setLoading(true);
@@ -178,6 +206,7 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       </main>
+      <Toaster />
     </div>
   );
 }
