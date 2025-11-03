@@ -23,6 +23,7 @@ export default function EmailComposerPage() {
   const [generating, setGenerating] = useState(false);
   const [savedEmails, setSavedEmails] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // AI Actions
   const [aiAction, setAiAction] = useState<'generate' | 'improve' | 'shorten' | 'expand' | 'tone'>('generate');
@@ -138,6 +139,69 @@ export default function EmailComposerPage() {
     });
   };
 
+  const handleSend = async () => {
+    if (!to) {
+      toast({
+        title: 'Missing Recipient',
+        description: 'Please enter a recipient email address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!subject) {
+      toast({
+        title: 'Missing Subject',
+        description: 'Please enter an email subject',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!body) {
+      toast({
+        title: 'Empty Email',
+        description: 'Please write an email message',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: 'Email Sent!',
+          description: `Successfully sent to ${to}`,
+        });
+
+        // Clear form after sending
+        setTo('');
+        setSubject('');
+        setBody('');
+      } else {
+        throw new Error(data.error || 'Failed to send email');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Send Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -213,9 +277,22 @@ export default function EmailComposerPage() {
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     {copied ? 'Copied!' : 'Copy'}
                   </Button>
-                  <Button className="gap-2 ml-auto">
-                    <Send className="w-4 h-4" />
-                    Send Email
+                  <Button
+                    onClick={handleSend}
+                    disabled={sending || !to || !subject || !body}
+                    className="gap-2 ml-auto"
+                  >
+                    {sending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Send Email
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
