@@ -203,15 +203,151 @@ export async function POST(request: NextRequest) {
     // Handle callback queries (button presses)
     if (update.callback_query) {
       const callbackQueryId = update.callback_query.id;
+      const callbackData = update.callback_query.data;
+      const callbackChatId = update.callback_query.message?.chat?.id?.toString();
 
       try {
-        // Answer callback query
-        await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
-          callback_query_id: callbackQueryId,
-          text: 'Opening details...',
-        });
+        // Parse callback data (format: action_businessId)
+        const [action, businessId] = callbackData.split('_');
+
+        if (action === 'approve') {
+          // Approve business
+          await prisma.business.update({
+            where: { id: businessId },
+            data: {
+              approvedAt: new Date(),
+              reviewStatus: 'approved',
+            },
+          });
+
+          // Log activity
+          await prisma.activityLog.create({
+            data: {
+              businessId,
+              action: 'business_approved',
+              details: {
+                source: 'telegram',
+                approvedBy: 'telegram_user',
+              },
+            },
+          });
+
+          // Answer callback query
+          await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+            callback_query_id: callbackQueryId,
+            text: '✅ Business approved!',
+          });
+
+          // Update message to show approved status
+          await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
+            chat_id: callbackChatId,
+            message_id: update.callback_query.message.message_id,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '✅ APPROVED', callback_data: 'approved' },
+                ],
+                [
+                  { text: '📧 Send Email', callback_data: `email_${businessId}` },
+                  { text: '🔗 View Details', url: `${process.env.NEXT_PUBLIC_APP_URL}/leads/${businessId}` },
+                ],
+              ],
+            },
+          });
+        } else if (action === 'reject') {
+          // Reject business (archive it)
+          await prisma.business.update({
+            where: { id: businessId },
+            data: {
+              archivedAt: new Date(),
+              reviewStatus: 'rejected',
+            },
+          });
+
+          // Log activity
+          await prisma.activityLog.create({
+            data: {
+              businessId,
+              action: 'business_archived',
+              details: {
+                source: 'telegram',
+                reason: 'rejected',
+              },
+            },
+          });
+
+          // Answer callback query
+          await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+            callback_query_id: callbackQueryId,
+            text: '❌ Business rejected',
+          });
+
+          // Update message to show rejected status
+          await axios.post(`${TELEGRAM_API}/editMessageReplyMarkup`, {
+            chat_id: callbackChatId,
+            message_id: update.callback_query.message.message_id,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '❌ REJECTED', callback_data: 'rejected' },
+                ],
+                [
+                  { text: '🔗 View Details', url: `${process.env.NEXT_PUBLIC_APP_URL}/leads/${businessId}` },
+                ],
+              ],
+            },
+          });
+        } else if (action === 'email') {
+          // Get business details
+          const business = await prisma.business.findUnique({
+            where: { id: businessId },
+          });
+
+          if (!business || !business.email) {
+            await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+              callback_query_id: callbackQueryId,
+              text: '❌ No email address found',
+              show_alert: true,
+            });
+            return NextResponse.json({ ok: true });
+          }
+
+          // Answer callback query
+          await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+            callback_query_id: callbackQueryId,
+            text: '📧 Opening email composer...',
+          });
+
+          // Send link to email composer with pre-filled data
+          const composeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/compose?to=${encodeURIComponent(business.email)}&businessName=${encodeURIComponent(business.businessName)}`;
+
+          await sendTelegramMessage(
+            callbackChatId!,
+            `📧 *Compose Email to ${business.businessName}*\n\n` +
+            `To: ${business.email}\n\n` +
+            `Click the button below to open the email composer:`,
+            {
+              inline_keyboard: [
+                [
+                  { text: '✉️ Open Email Composer', url: composeUrl },
+                ],
+              ],
+            }
+          );
+        } else {
+          // Default handler
+          await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+            callback_query_id: callbackQueryId,
+            text: 'Opening details...',
+          });
+        }
       } catch (error) {
         console.error('Callback handling error:', error);
+        await axios.post(`${TELEGRAM_API}/answerCallbackQuery`, {
+          callback_query_id: callbackQueryId,
+          text: '❌ Error processing action',
+          show_alert: true,
+        });
       }
     }
 

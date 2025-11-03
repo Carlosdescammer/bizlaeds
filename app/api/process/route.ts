@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import OpenAI from 'openai';
 import axios from 'axios';
+import { sendLeadAlert } from '@/lib/telegram-alerts';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -319,6 +320,18 @@ IMPORTANT:
         ...googleData,
       };
 
+      // Check if business already exists before upsert
+      const existingBusiness = await prisma.business.findUnique({
+        where: {
+          businessName_address: {
+            businessName: businessData.business_name,
+            address: businessAddress,
+          },
+        },
+      });
+
+      const isNewBusiness = !existingBusiness;
+
       // Use upsert to handle duplicates (update if exists, create if new)
       const business = await prisma.business.upsert({
         where: {
@@ -357,6 +370,20 @@ IMPORTANT:
           },
         },
       });
+
+      // Send Telegram alert for new businesses
+      if (isNewBusiness) {
+        try {
+          await sendLeadAlert({
+            businessId: business.id,
+            alertType: 'contact_ready',
+            customMessage: `New business extracted from photo with ${Math.round((businessData.confidence_score || 0) * 100)}% confidence`,
+          });
+        } catch (error) {
+          console.error('Failed to send Telegram alert for new business:', error);
+          // Don't fail the whole process if Telegram fails
+        }
+      }
 
       createdBusinesses.push({
         id: business.id,

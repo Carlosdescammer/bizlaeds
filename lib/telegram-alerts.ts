@@ -20,6 +20,7 @@ export async function sendLeadAlert(options: TelegramAlertOptions): Promise<bool
     return false;
   }
 
+  let message = '';
   try {
     const business = await prisma.business.findUnique({
       where: { id: options.businessId },
@@ -30,7 +31,26 @@ export async function sendLeadAlert(options: TelegramAlertOptions): Promise<bool
       return false;
     }
 
-    const message = formatAlertMessage(business, options.alertType, options.customMessage);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const businessUrl = `${appUrl}/leads/${business.id}`;
+    message = formatAlertMessage(business, options.alertType, options.customMessage);
+
+    // Create inline keyboard with action buttons
+    // Note: Telegram requires HTTPS URLs for inline keyboard buttons (no localhost)
+    const isProduction = appUrl.startsWith('https://');
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          { text: '✅ Approve', callback_data: `approve_${business.id}` },
+          { text: '❌ Reject', callback_data: `reject_${business.id}` },
+        ],
+        [
+          { text: '📧 Send Email', callback_data: `email_${business.id}` },
+          // Only add URL button in production (Telegram doesn't allow localhost URLs)
+          ...(isProduction ? [{ text: '🔗 View Details', url: businessUrl }] : []),
+        ],
+      ],
+    };
 
     const response = await axios.post(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -39,6 +59,7 @@ export async function sendLeadAlert(options: TelegramAlertOptions): Promise<bool
         text: message,
         parse_mode: 'HTML',
         disable_web_page_preview: false,
+        reply_markup: inlineKeyboard,
       }
     );
 
@@ -55,10 +76,28 @@ export async function sendLeadAlert(options: TelegramAlertOptions): Promise<bool
     });
 
     return response.data.ok;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send Telegram alert:', error);
+    if (error.response) {
+      console.error('Telegram API error details:', {
+        status: error.response.status,
+        data: error.response.data,
+        message: message,
+      });
+    }
     return false;
   }
+}
+
+/**
+ * Escape HTML special characters for Telegram
+ */
+function escapeHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 /**
@@ -83,7 +122,7 @@ function formatAlertMessage(
       details = `
 <b>Relevance Score:</b> ${business.relevanceScore || 'N/A'}/100
 <b>Lead Priority:</b> ${(business.leadPriority || 'medium').toUpperCase()}
-<b>Service Segment:</b> ${business.serviceSegment || 'Not classified'}
+<b>Service Segment:</b> ${escapeHtml(business.serviceSegment) || 'Not classified'}
 `;
       break;
 
@@ -92,7 +131,7 @@ function formatAlertMessage(
       title = 'Duplicate Detected';
       details = `
 <b>Status:</b> Marked as duplicate
-<b>May be duplicate of:</b> ID ${business.duplicateOfId || 'Unknown'}
+<b>May be duplicate of:</b> ID ${escapeHtml(business.duplicateOfId) || 'Unknown'}
 `;
       break;
 
@@ -110,9 +149,9 @@ function formatAlertMessage(
       emoji = '✨';
       title = 'Lead Enriched';
       details = `
-<b>Enriched by:</b> ${business.enrichedByService || 'Google Places'}
-<b>Company Size:</b> ${business.companySize || 'Unknown'}
-<b>Industry:</b> ${business.industry || 'Unknown'}
+<b>Enriched by:</b> ${escapeHtml(business.enrichedByService) || 'Google Places'}
+<b>Company Size:</b> ${escapeHtml(business.companySize) || 'Unknown'}
+<b>Industry:</b> ${escapeHtml(business.industry) || 'Unknown'}
 `;
       break;
 
@@ -129,27 +168,27 @@ function formatAlertMessage(
   }
 
   const contactInfo = [];
-  if (business.email) contactInfo.push(`📧 ${business.email}`);
-  if (business.phone) contactInfo.push(`📞 ${business.phone}`);
-  if (business.website) contactInfo.push(`🌐 ${business.website}`);
+  if (business.email) contactInfo.push(`📧 ${escapeHtml(business.email)}`);
+  if (business.phone) contactInfo.push(`📞 ${escapeHtml(business.phone)}`);
+  if (business.website) contactInfo.push(`🌐 ${escapeHtml(business.website)}`);
 
   const locationInfo = [];
-  if (business.city) locationInfo.push(business.city);
-  if (business.state) locationInfo.push(business.state);
+  if (business.city) locationInfo.push(escapeHtml(business.city));
+  if (business.state) locationInfo.push(escapeHtml(business.state));
 
   const message = `
 ${emoji} <b>${title}</b>
 
-<b>Business:</b> ${business.businessName}
-<b>Type:</b> ${business.businessType || 'Unknown'}
-<b>Industry:</b> ${business.industry || 'Not specified'}
+<b>Business:</b> ${escapeHtml(business.businessName)}
+<b>Type:</b> ${escapeHtml(business.businessType) || 'Unknown'}
+<b>Industry:</b> ${escapeHtml(business.industry) || 'Not specified'}
 ${locationInfo.length > 0 ? `<b>Location:</b> ${locationInfo.join(', ')}` : ''}
 
 ${details}
 
 ${contactInfo.length > 0 ? '<b>Contact:</b>\n' + contactInfo.join('\n') : ''}
 
-${customMessage ? `\n<i>${customMessage}</i>\n` : ''}
+${customMessage ? `\n<i>${escapeHtml(customMessage)}</i>\n` : ''}
 
 <a href="${businessUrl}">View Full Details →</a>
   `.trim();
