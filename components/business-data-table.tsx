@@ -13,8 +13,9 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, Eye, Star } from "lucide-react"
+import { ArrowUpDown, ChevronDown, Eye, Star, Send } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useToast } from "@/hooks/use-toast"
 
 export type Business = {
   id: string
@@ -51,6 +53,71 @@ export type Business = {
   googleReviewCount: number | null
   confidenceScore: number | null
   createdAt: string
+}
+
+// Business actions cell component
+function BusinessActionsCell({ business }: { business: Business }) {
+  const [sending, setSending] = useState(false)
+  const { toast } = useToast()
+
+  const handleSendToTelegram = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    setSending(true)
+
+    try {
+      const response = await fetch('/api/telegram/send-business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: business.id,
+          alertType: 'contact_ready',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: 'Sent to Telegram!',
+          description: `Business info for "${business.businessName}" sent successfully`,
+        })
+      } else {
+        toast({
+          title: 'Failed to send',
+          description: data.error || 'Could not send to Telegram',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send',
+        variant: 'destructive',
+      })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleSendToTelegram}
+        disabled={sending}
+      >
+        <Send className={`h-4 w-4 mr-2 ${sending ? 'animate-pulse' : ''}`} />
+        {sending ? 'Sending...' : 'Telegram'}
+      </Button>
+      <Button variant="ghost" size="sm" asChild>
+        <Link href={`/leads/${business.id}`}>
+          <Eye className="h-4 w-4 mr-2" />
+          View
+        </Link>
+      </Button>
+    </div>
+  )
 }
 
 export const columns: ColumnDef<Business>[] = [
@@ -206,15 +273,7 @@ export const columns: ColumnDef<Business>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const business = row.original
-
-      return (
-        <Link href={`/leads/${business.id}`}>
-          <Button variant="ghost" size="sm">
-            <Eye className="h-4 w-4 mr-2" />
-            View
-          </Button>
-        </Link>
-      )
+      return <BusinessActionsCell business={business} />
     },
   },
 ]
