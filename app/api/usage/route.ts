@@ -82,17 +82,6 @@ export async function GET(request: NextRequest) {
       where: { month },
     });
 
-    // Get recent alerts
-    const alerts = await prisma.usageAlert.findMany({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
-
     // Get usage logs for the month
     const logs = await prisma.apiUsageLog.findMany({
       where: {
@@ -183,7 +172,6 @@ export async function GET(request: NextRequest) {
         cost: totalCost,
         requests: totalRequests,
       },
-      alerts,
       recentLogs: logs,
       hunterLive: hunterLiveData,
     });
@@ -196,56 +184,4 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create manual usage alert
-export async function POST(request: NextRequest) {
-  try {
-    const { service, alertLevel, message, thresholdPercentage } = await request.json();
-
-    const alert = await prisma.usageAlert.create({
-      data: {
-        service,
-        alertLevel,
-        message,
-        thresholdPercentage,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      alert,
-    });
-  } catch (error: any) {
-    console.error('Create alert error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create alert', message: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE - Clear old alerts
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
-
-    const result = await prisma.usageAlert.deleteMany({
-      where: {
-        createdAt: {
-          lt: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
-        },
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      deleted: result.count,
-    });
-  } catch (error: any) {
-    console.error('Delete alerts error:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete alerts', message: error.message },
-      { status: 500 }
-    );
-  }
-}
+// Alert functionality removed - usageAlert table no longer exists in simplified schema

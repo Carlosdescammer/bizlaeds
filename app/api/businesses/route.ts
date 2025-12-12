@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     if (status) {
-      where.reviewStatus = status;
+      where.leadStatus = status;
     }
 
     if (search) {
@@ -44,19 +44,8 @@ export async function GET(request: NextRequest) {
       prisma.business.count({ where }),
     ]);
 
-    // Convert BigInt to string for JSON serialization
-    const serializedBusinesses = businesses.map(business => ({
-      ...business,
-      telegramMessageId: business.telegramMessageId?.toString(),
-      telegramUserId: business.telegramUserId?.toString(),
-      photos: business.photos.map(photo => ({
-        ...photo,
-        telegramMessageId: photo.telegramMessageId.toString(),
-      })),
-    }));
-
     return NextResponse.json({
-      businesses: serializedBusinesses,
+      businesses,
       total,
       limit,
       offset,
@@ -86,15 +75,7 @@ export async function POST(request: NextRequest) {
         phone: data.phone,
         email: data.email,
         website: data.website,
-        reviewStatus: 'pending_review',
-      },
-    });
-
-    await prisma.activityLog.create({
-      data: {
-        businessId: business.id,
-        action: 'business_created_manually',
-        details: data,
+        leadStatus: 'new',
       },
     });
 

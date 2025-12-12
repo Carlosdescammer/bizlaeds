@@ -156,12 +156,9 @@ export async function POST(request: NextRequest) {
         await prisma.business.update({
           where: { id: businessId },
           data: {
-            hunterVerificationStatus: result.data.status,
+            hunterVerificationStatus: result.data.result,
             hunterVerificationScore: result.data.score,
-            hunterVerifiedAt: new Date(),
-            emailDeliverability: result.data.result,
-            emailRiskLevel: result.data.result === 'risky' ? 'high' :
-                          result.data.result === 'deliverable' ? 'low' : 'medium',
+            emailValid: result.data.result === 'deliverable' && result.data.score >= 70,
           },
         });
       }
@@ -214,8 +211,6 @@ export async function POST(request: NextRequest) {
             linkedinUrl: result.data.linkedinUrl || undefined,
             twitterHandle: result.data.twitterHandle || undefined,
             hunterEnrichedAt: new Date(),
-            enrichedByService: 'hunter',
-            enrichedAt: new Date(),
           },
         });
       }

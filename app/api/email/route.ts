@@ -170,16 +170,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      await prisma.activityLog.create({
-        data: {
-          businessId: business.id,
-          action: 'email_generated',
-          details: {
-            campaignId: campaign.id,
-            subject: emailContent.subject,
-          },
-        },
-      });
 
       return NextResponse.json({
         success: true,
@@ -244,16 +234,6 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        await prisma.activityLog.create({
-          data: {
-            businessId: business.id,
-            action: 'email_sent',
-            details: {
-              campaignId: campaign.id,
-              recipient: business.email,
-            },
-          },
-        });
 
         return NextResponse.json({
           success: true,

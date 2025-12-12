@@ -2,94 +2,87 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Upload, BarChart3, Download } from 'lucide-react';
-import { BusinessDataTable } from '@/components/business-data-table';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
+import {
+  Search,
+  Filter,
+  Download,
+  Upload,
+  BarChart3,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  Star,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  TrendingUp,
+  Users,
+  Globe,
+  Target,
+  Calendar,
+  ArrowUpRight,
+} from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
-import { useToast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
+import { Badge } from '@/components/ui/badge';
+import { calculateLeadScore } from '@/lib/lead-scoring';
 
 type Business = {
   id: string;
   businessName: string;
   businessType: string | null;
+  industry: string | null;
+  companySize: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
-  zipCode: string | null;
-  country: string | null;
   formattedAddress: string | null;
   phone: string | null;
   email: string | null;
-  reviewStatus: string;
+  emailValid: boolean | null;
+  website: string | null;
+  contactName: string | null;
   googleRating: number | null;
   googleReviewCount: number | null;
+  googlePlaceId: string | null;
+  hunterEmailPattern: string | null;
+  hunterEmailCount: number | null;
+  hunterVerificationStatus: string | null;
+  hunterVerificationScore: number | null;
+  hunterEnrichedAt: string | null;
+  linkedinUrl: string | null;
+  twitterHandle: string | null;
+  facebookUrl: string | null;
+  logoUrl: string | null;
+  leadStatus: string;
+  leadPriority: string | null;
   confidenceScore: number | null;
   createdAt: string;
+  lastContactedAt: string | null;
 };
 
 export default function LeadsPage() {
-  const { toast } = useToast();
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    approved: 0,
-    avgRating: 0,
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchBusinesses();
+  }, []);
 
-    // Listen for telegram-sent events
-    const handleTelegramSent = (event: Event) => {
-      const customEvent = event as CustomEvent<{
-        success: boolean;
-        businessName?: string;
-        error?: string;
-      }>;
-      const { success, businessName, error } = customEvent.detail;
-      if (success) {
-        toast({
-          title: 'Sent to Telegram!',
-          description: `Business info for "${businessName}" sent successfully`,
-        });
-      } else {
-        toast({
-          title: 'Failed to send',
-          description: error || 'Could not send to Telegram',
-          variant: 'destructive',
-        });
-      }
-    };
-
-    window.addEventListener('telegram-sent', handleTelegramSent);
-    return () => window.removeEventListener('telegram-sent', handleTelegramSent);
-  }, [toast]);
+  useEffect(() => {
+    filterBusinesses();
+  }, [businesses, searchQuery, statusFilter, priorityFilter]);
 
   const fetchBusinesses = async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/businesses');
       const data = await response.json();
-
-      const businessData = data.businesses || [];
-      setBusinesses(businessData);
-
-      // Calculate stats
-      const total = businessData.length;
-      const pending = businessData.filter((b: Business) => b.reviewStatus === 'pending_review').length;
-      const approved = businessData.filter((b: Business) => b.reviewStatus === 'approved').length;
-      const ratingsSum = businessData
-        .filter((b: Business) => b.googleRating)
-        .reduce((sum: number, b: Business) => sum + Number(b.googleRating), 0);
-      const ratingsCount = businessData.filter((b: Business) => b.googleRating).length;
-      const avgRating = ratingsCount > 0 ? ratingsSum / ratingsCount : 0;
-
-      setStats({ total, pending, approved, avgRating });
+      setBusinesses(data.businesses || []);
     } catch (error) {
       console.error('Failed to fetch businesses:', error);
     } finally {
@@ -97,116 +90,419 @@ export default function LeadsPage() {
     }
   };
 
-  const handleExport = () => {
-    // Open export URL in new window to trigger download
-    window.open('/api/businesses/export?format=csv', '_blank');
+  const filterBusinesses = () => {
+    let filtered = [...businesses];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (b) =>
+          b.businessName?.toLowerCase().includes(query) ||
+          b.email?.toLowerCase().includes(query) ||
+          b.phone?.toLowerCase().includes(query) ||
+          b.city?.toLowerCase().includes(query) ||
+          b.industry?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((b) => b.leadStatus === statusFilter);
+    }
+
+    // Priority filter
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter((b) => b.leadPriority === priorityFilter);
+    }
+
+    setFilteredBusinesses(filtered);
   };
 
-  const handleExportApproved = () => {
-    window.open('/api/businesses/export?format=csv&status=approved', '_blank');
+  const handleExport = (type: string) => {
+    let url = '/api/businesses/export?format=csv';
+    if (type === 'high-priority') url += '&leadPriority=high';
+    if (type === 'new') url += '&leadStatus=new';
+    window.open(url, '_blank');
+  };
+
+  // Calculate stats
+  const stats = {
+    total: businesses.length,
+    new: businesses.filter((b) => b.leadStatus === 'new').length,
+    contacted: businesses.filter((b) => b.leadStatus === 'contacted').length,
+    qualified: businesses.filter((b) => b.leadStatus === 'qualified').length,
+    highPriority: businesses.filter((b) => b.leadPriority === 'high').length,
+    avgScore: businesses.length > 0
+      ? Math.round(businesses.reduce((sum, b) => sum + calculateLeadScore(b), 0) / businesses.length)
+      : 0,
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Spinner size="lg" className="text-primary" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Business Leads</h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage and track your business leads</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Top Navigation */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leads</h1>
+              <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {filteredBusinesses.length} leads
+              </Badge>
             </div>
-            <nav className="flex flex-wrap gap-2 sm:gap-3">
-              <Button variant="outline" onClick={handleExportApproved} size="sm" className="flex-1 sm:flex-initial">
-                <Download className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Export Approved</span>
-              </Button>
-              <Button variant="outline" onClick={handleExport} size="sm" className="flex-1 sm:flex-initial">
-                <Download className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Export All</span>
-              </Button>
-              <Link href="/" className="flex-1 sm:flex-initial">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Upload className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Upload Photo</span>
-                </Button>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+              >
+                <Upload className="w-4 h-4" />
+                Upload Photo
               </Link>
-              <Link href="/usage" className="flex-1 sm:flex-initial">
-                <Button variant="outline" size="sm" className="w-full">
-                  <BarChart3 className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Usage</span>
-                </Button>
-              </Link>
-              <Link href="/compose" className="flex-1 sm:flex-initial">
-                <Button variant="outline" size="sm" className="w-full">
-                  <svg className="w-4 h-4 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  <span className="hidden sm:inline">Compose</span>
-                </Button>
+              <Link
+                href="/usage"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 rounded-lg"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Usage
               </Link>
               <ModeToggle />
-            </nav>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
-              <CardDescription className="text-xs sm:text-sm">Total Leads</CardDescription>
-              <CardTitle className="text-2xl sm:text-3xl">{stats.total}</CardTitle>
-            </CardHeader>
-          </Card>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Total Leads</div>
+              </div>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
-              <CardDescription className="text-xs sm:text-sm">Pending Review</CardDescription>
-              <CardTitle className="text-2xl sm:text-3xl text-yellow-600">{stats.pending}</CardTitle>
-            </CardHeader>
-          </Card>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.new}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">New</div>
+              </div>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
-              <CardDescription className="text-xs sm:text-sm">Approved</CardDescription>
-              <CardTitle className="text-2xl sm:text-3xl text-green-600">{stats.approved}</CardTitle>
-            </CardHeader>
-          </Card>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                <Mail className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.contacted}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Contacted</div>
+              </div>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
-              <CardDescription className="text-xs sm:text-sm">Avg Rating</CardDescription>
-              <CardTitle className="text-2xl sm:text-3xl">
-                {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '-'}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.qualified}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Qualified</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                <Target className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.highPriority}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">High Priority</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.avgScore}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Avg Score</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Data Table */}
-        <Card>
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">All Businesses</CardTitle>
-            <CardDescription className="text-sm">
-              View and manage all business leads collected from photos
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 sm:p-6">
-            <BusinessDataTable data={businesses} />
-          </CardContent>
-        </Card>
-      </main>
-      <Toaster />
+        {/* Search and Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search leads by name, email, phone, city..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="qualified">Qualified</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+            </select>
+
+            {/* Priority Filter */}
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Priority</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            {/* Export Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => handleExport('all')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 rounded-lg"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Leads Grid */}
+        <div className="grid grid-cols-1 gap-4">
+          {filteredBusinesses.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No leads found</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                {searchQuery || statusFilter !== 'all' || priorityFilter !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'Upload a business card photo to get started'}
+              </p>
+              {!searchQuery && statusFilter === 'all' && priorityFilter === 'all' && (
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload Photo
+                </Link>
+              )}
+            </div>
+          ) : (
+            filteredBusinesses.map((business) => {
+              const leadScore = calculateLeadScore(business);
+              const scoreColor = leadScore >= 80 ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : leadScore >= 50 ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20' : 'text-gray-600 bg-gray-50 dark:bg-gray-900/20';
+              const priorityColor =
+                business.leadPriority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                business.leadPriority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+
+              return (
+                <Link
+                  key={business.id}
+                  href={`/leads/${business.id}`}
+                  className="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-200"
+                >
+                  <div className="p-6">
+                    <div className="flex items-start gap-4">
+                      {/* Company Logo */}
+                      <div className="flex-shrink-0">
+                        {business.logoUrl ? (
+                          <img
+                            src={business.logoUrl}
+                            alt={business.businessName}
+                            className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <Building2 className="w-7 h-7 text-white" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Main Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                {business.businessName}
+                              </h3>
+                              {/* Email Verification Badge */}
+                              {business.hunterVerificationStatus === 'deliverable' && (
+                                <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/20 rounded-full" title={`Email Verified (${business.hunterVerificationScore}/100)`}>
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                  <span className="text-xs font-medium text-green-700 dark:text-green-300">Verified</span>
+                                </div>
+                              )}
+                              {business.hunterVerificationStatus === 'risky' && (
+                                <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/20 rounded-full" title={`Email Risky (${business.hunterVerificationScore}/100)`}>
+                                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                                  <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">Risky</span>
+                                </div>
+                              )}
+                              {business.hunterVerificationStatus === 'undeliverable' && (
+                                <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 dark:bg-red-900/20 rounded-full" title="Email Invalid">
+                                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                  <span className="text-xs font-medium text-red-700 dark:text-red-300">Invalid</span>
+                                </div>
+                              )}
+                              {!business.hunterVerificationStatus && business.emailValid && (
+                                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" title="Email Format Valid" />
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                              {business.industry && (
+                                <span className="flex items-center gap-1">
+                                  <Building2 className="w-4 h-4" />
+                                  {business.industry}
+                                </span>
+                              )}
+                              {business.companySize && (
+                                <>
+                                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-4 h-4" />
+                                    {business.companySize}
+                                  </span>
+                                </>
+                              )}
+                              {business.city && business.state && (
+                                <>
+                                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {business.city}, {business.state}
+                                  </span>
+                                </>
+                              )}
+                              {business.googleRating && (
+                                <>
+                                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                    {business.googleRating} ({business.googleReviewCount})
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Lead Score */}
+                          <div className={`flex-shrink-0 px-3 py-1 rounded-lg ${scoreColor} font-semibold`}>
+                            {leadScore}
+                          </div>
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                          {business.email && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-900 dark:text-white truncate">{business.email}</span>
+                            </div>
+                          )}
+                          {business.phone && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-900 dark:text-white">{business.phone}</span>
+                            </div>
+                          )}
+                          {business.website && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <span className="text-blue-600 dark:text-blue-400 truncate hover:underline">
+                                {business.website.replace(/^https?:\/\//, '')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Bottom Row - Badges and Date */}
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
+                              {(business.leadStatus || 'new').toUpperCase()}
+                            </Badge>
+                            {business.leadPriority && (
+                              <Badge className={`${priorityColor} text-xs`}>
+                                {business.leadPriority.toUpperCase()}
+                              </Badge>
+                            )}
+                            {business.hunterEnrichedAt && (
+                              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs">
+                                Enriched
+                              </Badge>
+                            )}
+                            {business.confidenceScore && business.confidenceScore >= 0.8 && (
+                              <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">
+                                High Confidence
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {new Date(business.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Arrow Icon */}
+                      <div className="flex-shrink-0 self-center">
+                        <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }

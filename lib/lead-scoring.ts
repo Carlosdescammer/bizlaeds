@@ -1,290 +1,261 @@
-// Lead scoring and intelligence utilities
+/**
+ * Simple Lead Scoring and Insights
+ * Provides basic scoring and recommendations for leads
+ */
 
-export interface LeadScore {
-  total: number;
-  level: 'hot' | 'warm' | 'cold';
-  color: string;
-  label: string;
-  breakdown: {
-    hasEmail: number;
-    hasPhone: number;
-    hasWebsite: number;
-    hasGoodRating: number;
-    hasManyReviews: number;
-    hasBusinessHours: number;
-    isCurrentlyOpen: number;
-    hasPhotos: number;
-  };
-}
+type Business = {
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  googlePlaceId?: string | null;
+  hunterEnrichedAt?: string | null;
+  emailValid?: boolean | null;
+  createdAt?: string;
+  leadStatus?: string | null;
+  confidenceScore?: number | null;
+  lastContactedAt?: string | null;
+  nextFollowUpAt?: string | null;
+};
 
-export interface TimingRecommendation {
-  status: 'open' | 'closed' | 'unknown';
-  statusColor: string;
-  message: string;
-  bestCallTime?: string;
-  nextOpenTime?: string;
-}
+/**
+ * Calculate lead score (0-100)
+ */
+export function calculateLeadScore(business: Business): number {
+  let score = 0;
 
-export interface BusinessInsight {
-  icon: string;
-  text: string;
-  type: 'positive' | 'neutral' | 'negative';
-}
-
-export function calculateLeadScore(business: any): LeadScore {
-  const rating = business.googleRating ? Number(business.googleRating) : 0;
-
-  const breakdown = {
-    hasEmail: business.email ? 20 : 0,
-    hasPhone: business.phone ? 20 : 0,
-    hasWebsite: business.website ? 15 : 0,
-    hasGoodRating: (rating && rating >= 4.0) ? 15 : 0,
-    hasManyReviews: (business.googleReviewCount && business.googleReviewCount > 10) ? 10 : 0,
-    hasBusinessHours: business.googleBusinessHours ? 10 : 0,
-    isCurrentlyOpen: business.googleBusinessHours?.open_now ? 5 : 0,
-    hasPhotos: business.googlePhotosData ? 5 : 0,
-  };
-
-  const total = Object.values(breakdown).reduce((sum, val) => sum + val, 0);
-
-  let level: 'hot' | 'warm' | 'cold';
-  let color: string;
-  let label: string;
-
-  if (total >= 80) {
-    level = 'hot';
-    color = 'text-red-600 bg-red-50 border-red-200';
-    label = 'Hot Lead';
-  } else if (total >= 60) {
-    level = 'warm';
-    color = 'text-orange-600 bg-orange-50 border-orange-200';
-    label = 'Warm Lead';
-  } else {
-    level = 'cold';
-    color = 'text-blue-600 bg-blue-50 border-blue-200';
-    label = 'Cold Lead';
+  // Email (30 points)
+  if (business.email && business.emailValid) {
+    score += 30;
+  } else if (business.email) {
+    score += 15;
   }
 
-  return { total, level, color, label, breakdown };
-}
-
-export function getTimingRecommendation(business: any): TimingRecommendation {
-  if (!business.googleBusinessHours) {
-    return {
-      status: 'unknown',
-      statusColor: 'text-gray-600',
-      message: 'Business hours unknown',
-    };
+  // Website (15 points)
+  if (business.website) {
+    score += 15;
   }
 
-  const isOpen = business.googleBusinessHours.open_now;
-  const hours = business.googleBusinessHours.weekday_text;
+  // Phone (10 points)
+  if (business.phone) {
+    score += 10;
+  }
 
-  if (isOpen) {
-    // Find closing time today
-    const today = new Date().getDay();
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const todayName = days[today];
-    const todayHours = hours?.find((h: string) => h.startsWith(todayName));
+  // Google rating (20 points)
+  if (business.googleRating && business.googleRating > 0) {
+    score += Math.round((business.googleRating / 5) * 20);
+  }
 
-    let closingTime = '';
-    if (todayHours) {
-      const match = todayHours.match(/–\s*(.+?)$/);
-      if (match) closingTime = match[1];
+  // Has location data (10 points)
+  if (business.googlePlaceId) {
+    score += 10;
+  }
+
+  // Recently added (5 points)
+  if (business.createdAt) {
+    const daysSinceCreated = (Date.now() - new Date(business.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceCreated <= 7) {
+      score += 5;
+    }
+  }
+
+  // Enriched data (10 points)
+  if (business.hunterEnrichedAt) {
+    score += 10;
+  }
+
+  return Math.min(100, Math.round(score));
+}
+
+/**
+ * Get timing recommendation for follow-up
+ */
+export function getTimingRecommendation(business: Business): {
+  timing: string;
+  urgency: 'high' | 'medium' | 'low';
+  reason: string;
+} {
+  const score = calculateLeadScore(business);
+
+  // Check if already contacted
+  if (business.lastContactedAt) {
+    const daysSinceContact = (Date.now() - new Date(business.lastContactedAt).getTime()) / (1000 * 60 * 60 * 24);
+
+    if (daysSinceContact > 14) {
+      return {
+        timing: 'Follow up this week',
+        urgency: 'medium',
+        reason: `Last contacted ${Math.round(daysSinceContact)} days ago`
+      };
     }
 
+    if (business.nextFollowUpAt) {
+      const daysUntilFollowUp = (new Date(business.nextFollowUpAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+      if (daysUntilFollowUp < 0) {
+        return {
+          timing: 'Follow up overdue',
+          urgency: 'high',
+          reason: 'Scheduled follow-up has passed'
+        };
+      }
+
+      return {
+        timing: `Follow up in ${Math.round(daysUntilFollowUp)} days`,
+        urgency: 'low',
+        reason: 'Follow-up scheduled'
+      };
+    }
+  }
+
+  // New lead - timing based on score
+  if (score >= 80) {
     return {
-      status: 'open',
-      statusColor: 'text-green-600',
-      message: closingTime ? `Open Now - Closes at ${closingTime}` : 'Open Now',
-      bestCallTime: 'Now is a good time to call!',
-    };
-  } else {
-    // Find next opening time
-    return {
-      status: 'closed',
-      statusColor: 'text-red-600',
-      message: 'Currently Closed',
-      nextOpenTime: 'Check business hours below for next opening',
+      timing: 'Contact today',
+      urgency: 'high',
+      reason: 'High-quality lead with complete information'
     };
   }
+
+  if (score >= 50) {
+    return {
+      timing: 'Contact within 2-3 days',
+      urgency: 'medium',
+      reason: 'Good lead with solid contact information'
+    };
+  }
+
+  return {
+    timing: 'Contact within a week',
+    urgency: 'low',
+    reason: 'Need to gather more information'
+  };
 }
 
-export function generateBusinessInsights(business: any): BusinessInsight[] {
-  const insights: BusinessInsight[] = [];
+/**
+ * Generate business insights
+ */
+export function generateBusinessInsights(business: Business): string[] {
+  const insights: string[] = [];
 
   // Rating insights
   if (business.googleRating) {
-    const rating = Number(business.googleRating);
-    if (rating >= 4.5) {
-      insights.push({
-        icon: '⭐',
-        text: `Excellent ${rating.toFixed(1)}-star rating suggests high quality service`,
-        type: 'positive',
-      });
-    } else if (rating >= 4.0) {
-      insights.push({
-        icon: '⭐',
-        text: `Good ${rating.toFixed(1)}-star rating indicates reliable service`,
-        type: 'positive',
-      });
-    } else if (rating < 3.5) {
-      insights.push({
-        icon: '⚠️',
-        text: `Lower rating (${rating.toFixed(1)}) may indicate service issues`,
-        type: 'negative',
-      });
+    if (business.googleRating >= 4.5) {
+      insights.push(`Excellent reputation with ${business.googleRating}⭐ rating`);
+    } else if (business.googleRating >= 4.0) {
+      insights.push(`Good reputation with ${business.googleRating}⭐ rating`);
+    } else if (business.googleRating < 3.0) {
+      insights.push(`Lower rating (${business.googleRating}⭐) - might need reputation management`);
     }
   }
 
   // Review count insights
   if (business.googleReviewCount) {
-    if (business.googleReviewCount > 50) {
-      insights.push({
-        icon: '💬',
-        text: `${business.googleReviewCount} reviews indicate established, active business`,
-        type: 'positive',
-      });
-    } else if (business.googleReviewCount > 10) {
-      insights.push({
-        icon: '💬',
-        text: `${business.googleReviewCount} reviews show moderate customer engagement`,
-        type: 'neutral',
-      });
+    if (business.googleReviewCount > 100) {
+      insights.push(`Well-established with ${business.googleReviewCount} reviews`);
+    } else if (business.googleReviewCount > 20) {
+      insights.push(`Growing presence with ${business.googleReviewCount} reviews`);
+    } else if (business.googleReviewCount < 5) {
+      insights.push(`New or small business with only ${business.googleReviewCount} reviews`);
     }
   }
 
-  // Business hours insights
-  if (business.googleBusinessHours?.weekday_text) {
-    const hours = business.googleBusinessHours.weekday_text;
-    const openDays = hours.filter((h: string) => !h.includes('Closed')).length;
-
-    if (openDays >= 6) {
-      insights.push({
-        icon: '📅',
-        text: `Open ${openDays} days/week - highly accessible to customers`,
-        type: 'positive',
-      });
-    } else if (openDays <= 3) {
-      insights.push({
-        icon: '📅',
-        text: `Limited hours (${openDays} days/week) - may be harder to reach`,
-        type: 'neutral',
-      });
-    }
+  // Email validation insights
+  if (business.emailValid === true) {
+    insights.push('Verified email address - ready to contact');
+  } else if (business.email && business.emailValid === false) {
+    insights.push('Email may be invalid - verify before sending');
   }
 
-  // Price level insights
-  if (business.googlePriceLevel) {
-    const priceLabels = ['Budget', 'Budget-Friendly', 'Mid-Range', 'Premium', 'Luxury'];
-    const label = priceLabels[business.googlePriceLevel - 1] || 'Unknown';
-    insights.push({
-      icon: '💰',
-      text: `${label} pricing - ${business.googlePriceLevel <= 2 ? 'price-conscious' : 'quality-focused'} clientele`,
-      type: 'neutral',
-    });
-  }
-
-  // Contact completeness
-  const contactMethods = [
-    business.phone ? 'phone' : null,
-    business.email ? 'email' : null,
-    business.website ? 'website' : null,
-  ].filter(Boolean);
-
-  if (contactMethods.length === 3) {
-    insights.push({
-      icon: '📞',
-      text: 'All contact methods available - easy to reach',
-      type: 'positive',
-    });
-  } else if (contactMethods.length === 0) {
-    insights.push({
-      icon: '❌',
-      text: 'No contact information - needs enrichment',
-      type: 'negative',
-    });
-  }
-
-  // Location insights
-  if (business.address && business.address.includes('Suite')) {
-    insights.push({
-      icon: '🏢',
-      text: 'Suite location suggests professional office space',
-      type: 'neutral',
-    });
-  }
-
-  // Photos insight
-  if (business.googlePhotosData && Array.isArray(business.googlePhotosData)) {
-    insights.push({
-      icon: '📸',
-      text: `${business.googlePhotosData.length} professional photos show active online presence`,
-      type: 'positive',
-    });
+  // Completeness insights
+  const hasCompleteInfo = business.email && business.phone && business.website;
+  if (hasCompleteInfo) {
+    insights.push('Complete contact information available');
+  } else {
+    const missing: string[] = [];
+    if (!business.email) missing.push('email');
+    if (!business.phone) missing.push('phone');
+    if (!business.website) missing.push('website');
+    insights.push(`Missing: ${missing.join(', ')}`);
   }
 
   return insights;
 }
 
-export function getRecommendedActions(business: any, timing: TimingRecommendation): string[] {
+/**
+ * Get recommended actions
+ */
+export function getRecommendedActions(business: Business): string[] {
   const actions: string[] = [];
+  const score = calculateLeadScore(business);
 
-  // Timing-based actions
-  if (timing.status === 'open') {
-    actions.push('☎️ Call now while they\'re open');
-  } else {
-    actions.push('📧 Send email to review when they open');
+  // High-priority actions
+  if (score >= 80 && !business.lastContactedAt) {
+    actions.push('Send initial outreach email');
+    actions.push('Add to high-priority follow-up list');
   }
 
-  // Contact-based actions
-  if (business.email) {
-    actions.push(`📧 Email ${business.email.split('@')[0]}@... (likely decision-maker)`);
+  // Data enrichment actions
+  if (!business.email) {
+    actions.push('Find email address using Hunter.io');
   }
 
-  if (business.website) {
-    actions.push('🌐 Visit website for additional contact info');
+  if (!business.phone) {
+    actions.push('Look up phone number via Google Business');
   }
 
-  // Rating-based actions
-  if (business.googleRating && business.googleRating >= 4.5) {
-    actions.push('⭐ Reference their excellent rating in outreach');
+  if (!business.website) {
+    actions.push('Search for company website');
   }
 
-  // Enrichment actions
-  if (!business.email && business.website) {
-    actions.push('🔍 Use Hunter.io to find email addresses');
+  // Verification actions
+  if (business.email && business.emailValid === null) {
+    actions.push('Verify email address deliverability');
   }
 
-  if (!business.googleEnrichedAt || !business.googleRating) {
-    actions.push('🔄 Enrich with Google Places for more data');
+  // Follow-up actions
+  if (business.lastContactedAt && !business.nextFollowUpAt) {
+    actions.push('Schedule follow-up date');
   }
 
-  return actions.slice(0, 5); // Limit to top 5 actions
+  // Research actions
+  if (!business.googleReviewCount) {
+    actions.push('Research company reviews and reputation');
+  }
+
+  // Default action if none apply
+  if (actions.length === 0) {
+    actions.push('Review lead information and plan outreach');
+  }
+
+  return actions;
 }
 
-export function getTalkingPoints(business: any): string[] {
+/**
+ * Get talking points for outreach
+ */
+export function getTalkingPoints(business: Business): string[] {
   const points: string[] = [];
 
-  if (business.googleRating) {
-    const rating = Number(business.googleRating);
-    if (rating >= 4.0) {
-      points.push(`"Noticed your ${rating.toFixed(1)}-star rating - clearly your customers value your service"`);
-    }
+  // Rating-based talking points
+  if (business.googleRating && business.googleRating >= 4.5) {
+    points.push(`Noticed your excellent ${business.googleRating}⭐ rating`);
   }
 
-  if (business.address) {
-    const area = business.city || business.address.split(',')[1]?.trim() || 'the area';
-    points.push(`"I work with businesses in ${area}"`);
+  // Review-based talking points
+  if (business.googleReviewCount && business.googleReviewCount > 50) {
+    points.push(`Impressed by your ${business.googleReviewCount} customer reviews`);
   }
 
-  if (business.googlePhotosData && business.googlePhotosData.length > 5) {
-    points.push('"Your professional online presence caught my attention"');
+  // Location-based talking points
+  if (business.googlePlaceId) {
+    points.push('Local business serving the community');
   }
 
-  if (business.businessType) {
-    points.push(`"I specialize in helping ${business.businessType.toLowerCase()} businesses"`);
-  }
+  // Generic talking points
+  points.push('Would love to learn more about your business needs');
+  points.push('Explore how we can help you grow');
 
   return points;
 }

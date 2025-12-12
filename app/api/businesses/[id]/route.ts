@@ -25,18 +25,7 @@ export async function GET(
       );
     }
 
-    // Convert BigInt to string for JSON serialization
-    const serializedBusiness = {
-      ...business,
-      telegramMessageId: business.telegramMessageId?.toString(),
-      telegramUserId: business.telegramUserId?.toString(),
-      photos: business.photos.map(photo => ({
-        ...photo,
-        telegramMessageId: photo.telegramMessageId.toString(),
-      })),
-    };
-
-    return NextResponse.json({ business: serializedBusiness });
+    return NextResponse.json({ business });
   } catch (error: any) {
     console.error('Get business error:', error);
     return NextResponse.json(
@@ -67,27 +56,12 @@ export async function PATCH(
         ...(data.phone && { phone: data.phone }),
         ...(data.email && { email: data.email }),
         ...(data.website && { website: data.website }),
-        ...(data.reviewStatus && { reviewStatus: data.reviewStatus }),
-        ...(data.reviewStatus === 'approved' && { approvedAt: new Date() }),
+        ...(data.leadStatus && { leadStatus: data.leadStatus }),
+        ...(data.leadPriority && { leadPriority: data.leadPriority }),
       },
     });
 
-    await prisma.activityLog.create({
-      data: {
-        businessId: business.id,
-        action: 'business_updated',
-        details: data,
-      },
-    });
-
-    // Convert BigInt to string for JSON serialization
-    const serializedBusiness = {
-      ...business,
-      telegramMessageId: business.telegramMessageId?.toString(),
-      telegramUserId: business.telegramUserId?.toString(),
-    };
-
-    return NextResponse.json({ success: true, business: serializedBusiness });
+    return NextResponse.json({ success: true, business });
   } catch (error: any) {
     console.error('Update business error:', error);
     return NextResponse.json(
@@ -106,14 +80,6 @@ export async function DELETE(
     const { id } = await params;
     await prisma.business.delete({
       where: { id },
-    });
-
-    await prisma.activityLog.create({
-      data: {
-        businessId: id,
-        action: 'business_deleted',
-        details: {},
-      },
     });
 
     return NextResponse.json({ success: true });

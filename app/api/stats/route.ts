@@ -9,11 +9,11 @@ export async function GET() {
     // Get total business count
     const totalBusinesses = await prisma.business.count();
 
-    // Get count by status
+    // Get count by lead status (using leadStatus field instead of approvedAt/archivedAt)
     const [approved, pending, archived] = await Promise.all([
-      prisma.business.count({ where: { approvedAt: { not: null } } }),
-      prisma.business.count({ where: { approvedAt: null, archivedAt: null } }),
-      prisma.business.count({ where: { archivedAt: { not: null } } }),
+      prisma.business.count({ where: { leadStatus: { in: ['contacted', 'qualified', 'won'] } } }),
+      prisma.business.count({ where: { leadStatus: 'new' } }),
+      prisma.business.count({ where: { leadStatus: 'lost' } }),
     ]);
 
     // Get recent activity (last 24 hours)
@@ -24,11 +24,11 @@ export async function GET() {
       }
     });
 
-    // Get enrichment stats
+    // Get enrichment stats (using simplified fields)
     const [enrichedByGoogle, enrichedByHunter, verified] = await Promise.all([
-      prisma.business.count({ where: { googleEnrichedAt: { not: null } } }),
+      prisma.business.count({ where: { googlePlaceId: { not: null } } }),
       prisma.business.count({ where: { hunterEnrichedAt: { not: null } } }),
-      prisma.business.count({ where: { hunterVerificationStatus: 'valid' } }),
+      prisma.business.count({ where: { emailValid: true } }),
     ]);
 
     return NextResponse.json({

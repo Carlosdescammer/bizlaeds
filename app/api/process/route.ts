@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import OpenAI from 'openai';
 import axios from 'axios';
-import { sendLeadAlert } from '@/lib/telegram-alerts';
+import { enrichBusiness } from '@/lib/enrichment-pipeline';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -45,28 +45,41 @@ async function logApiUsage(serviceName: string, businessId: string | null, cost:
 
 // Process a single photo
 async function processPhoto(photoId: string) {
+  const processStartTime = Date.now();
+  console.log(`\n[PROCESS] ========== Starting processing for photo ${photoId} ==========`);
+
   const photo = await prisma.photo.findUnique({
     where: { id: photoId },
   });
 
-  if (!photo || photo.processed) {
-    return { success: false, error: 'Photo not found or already processed' };
+  if (!photo) {
+    console.error(`[PROCESS] ❌ Photo not found: ${photoId}`);
+    return { success: false, error: 'Photo not found' };
+  }
+
+  if (photo.processed) {
+    console.log(`[PROCESS] ⏭️  Photo already processed: ${photoId}`);
+    return { success: false, error: 'Photo already processed' };
   }
 
   try {
     // Get the image URL - handle data URLs, http URLs, and relative paths
     let imageUrl = photo.fileUrl;
     if (!imageUrl) {
-      throw new Error('No image URL found');
+      throw new Error('No image URL found in photo record');
     }
+
+    console.log(`[PROCESS] Image URL type: ${imageUrl.startsWith('data:') ? 'data URL' : imageUrl.startsWith('http') ? 'HTTP URL' : 'relative path'}`);
 
     // If it's a relative path (starts with /), prepend the app URL
     if (imageUrl.startsWith('/') && !imageUrl.startsWith('//')) {
       imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}${imageUrl}`;
+      console.log(`[PROCESS] Converted to absolute URL: ${imageUrl.substring(0, 50)}...`);
     }
-    // data: URLs and http/https URLs are used as-is
 
     // Call OpenAI Vision API
+    console.log('[PROCESS] 🔍 Calling OpenAI Vision API...');
+    const visionStartTime = Date.now();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o', // Updated model (gpt-4-vision-preview is deprecated)
       messages: [
@@ -132,27 +145,70 @@ IMPORTANT:
       max_tokens: 1500,
     });
 
+    const visionDuration = Date.now() - visionStartTime;
+    console.log(`[PROCESS] ✅ OpenAI Vision API responded in ${visionDuration}ms`);
+
     let aiResponse = response.choices[0]?.message?.content || '{}';
+
+    // Check if we got a valid response
+    if (!aiResponse || aiResponse === '{}') {
+      console.error('[PROCESS] ❌ Empty response from OpenAI Vision API');
+      throw new Error('OpenAI Vision API returned empty response - image may be unreadable');
+    }
+
+    console.log(`[PROCESS] Raw AI response length: ${aiResponse.length} chars`);
 
     // Remove markdown code blocks if present (GPT-4o sometimes wraps JSON in ```json ```)
     aiResponse = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
 
-    const extractedData = JSON.parse(aiResponse);
+    let extractedData;
+    try {
+      extractedData = JSON.parse(aiResponse);
+      console.log('[PROCESS] ✅ Successfully parsed AI response as JSON');
+    } catch (parseError: any) {
+      console.error('[PROCESS] ❌ Failed to parse AI response as JSON');
+      console.error('[PROCESS] AI response:', aiResponse.substring(0, 500));
+      throw new Error(`Failed to parse AI response: ${parseError.message}`);
+    }
+
+    // Log what text was found
+    if (extractedData.all_text_found && extractedData.all_text_found.length > 0) {
+      console.log(`[PROCESS] 📝 Found ${extractedData.all_text_found.length} text elements:`, extractedData.all_text_found.slice(0, 10));
+    } else {
+      console.warn('[PROCESS] ⚠️  No text found in image - may be blurry or empty');
+    }
 
     // Log OpenAI usage
     await logApiUsage('openai', null, 0.02, true);
 
     // Validate we have businesses array
     if (!extractedData.businesses || !Array.isArray(extractedData.businesses) || extractedData.businesses.length === 0) {
+      const errorMessage = extractedData.all_text_found && extractedData.all_text_found.length > 0
+        ? 'Text found but no business names identified - image may not contain business information'
+        : 'No text found in image - photo may be too blurry, too dark, or not contain business information';
+
+      console.error(`[PROCESS] ❌ ${errorMessage}`);
+      console.error('[PROCESS] Notes from AI:', extractedData.notes || 'No notes provided');
+
       await prisma.photo.update({
         where: { id: photoId },
         data: {
           processed: true,
-          processingError: 'No businesses found in image',
+          processingError: errorMessage,
         },
       });
-      return { success: false, error: 'No businesses found' };
+      return {
+        success: false,
+        error: errorMessage,
+        debug: {
+          textFound: extractedData.all_text_found || [],
+          aiNotes: extractedData.notes || 'No notes',
+          suggestion: 'Try taking a clearer photo with good lighting and visible text'
+        }
+      };
     }
+
+    console.log(`[PROCESS] ✅ Found ${extractedData.businesses.length} business(es) in image`);
 
     // Shared data from multi-tenant building
     const sharedAddress = extractedData.shared_address;
@@ -162,10 +218,22 @@ IMPORTANT:
 
     // Process each business found
     const createdBusinesses = [];
+    console.log(`[PROCESS] 🔄 Processing ${extractedData.businesses.length} business(es)...`);
 
-    for (const businessData of extractedData.businesses) {
+    for (let i = 0; i < extractedData.businesses.length; i++) {
+      const businessData = extractedData.businesses[i];
+      console.log(`\n[PROCESS] --- Business ${i + 1}/${extractedData.businesses.length} ---`);
+      console.log(`[PROCESS] Name: ${businessData.business_name}`);
+      console.log(`[PROCESS] Confidence: ${businessData.confidence_score || 'N/A'}`);
+
       // Skip if confidence too low or no business name
-      if (!businessData.business_name || (businessData.confidence_score && businessData.confidence_score < 0.5)) {
+      if (!businessData.business_name) {
+        console.warn(`[PROCESS] ⏭️  Skipping business ${i + 1} - no name provided`);
+        continue;
+      }
+
+      if (businessData.confidence_score && businessData.confidence_score < 0.5) {
+        console.warn(`[PROCESS] ⏭️  Skipping business ${i + 1} - confidence too low (${businessData.confidence_score})`);
         continue;
       }
 
@@ -178,10 +246,13 @@ IMPORTANT:
       // Enrich with Google Maps Place Search + Details
       let googleData: any = {};
       if (businessData.business_name && fullAddress) {
+        console.log(`[PROCESS] 🗺️  Enriching with Google Maps...`);
         try {
           const searchQuery = businessData.suite_number
             ? `${businessData.business_name} Suite ${businessData.suite_number} ${fullAddress}`
             : `${businessData.business_name} ${fullAddress}`;
+
+          console.log(`[PROCESS] Search query: "${searchQuery}"`);
 
           // Step 1: Find Place (Text Search)
           const findPlaceResponse = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
@@ -198,6 +269,7 @@ IMPORTANT:
           if (findPlaceResponse.data.candidates && findPlaceResponse.data.candidates[0]) {
             const place = findPlaceResponse.data.candidates[0];
             const placeId = place.place_id;
+            console.log(`[PROCESS] ✅ Found Google place: ${place.name}`);
 
             googleData = {
               googlePlaceId: placeId,
@@ -207,6 +279,7 @@ IMPORTANT:
             };
 
             // Step 2: Get Place Details (rich information)
+            console.log(`[PROCESS] 📊 Fetching place details...`);
             try {
               const detailsResponse = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
                 params: {
@@ -220,6 +293,7 @@ IMPORTANT:
 
               const details = detailsResponse.data.result;
               if (details) {
+                console.log(`[PROCESS] ✅ Place details: rating=${details.rating}, reviews=${details.user_ratings_total}`);
                 googleData.googleRating = details.rating || null;
                 googleData.googleReviewCount = details.user_ratings_total || null;
                 googleData.googlePriceLevel = details.price_level || null;
@@ -245,14 +319,18 @@ IMPORTANT:
                 }
               }
             } catch (detailsError: any) {
-              console.error('Google Places Details error:', detailsError);
+              console.error('[PROCESS] ❌ Google Places Details error:', detailsError.message);
               await logApiUsage('google_maps', null, 0.017, false, detailsError.message);
             }
+          } else {
+            console.warn('[PROCESS] ⚠️  Google Maps found no results for this business');
           }
         } catch (error: any) {
-          console.error('Google Maps error:', error);
+          console.error('[PROCESS] ❌ Google Maps error:', error.message);
           await logApiUsage('google_maps', null, 0.005, false, error.message);
         }
+      } else {
+        console.log('[PROCESS] ⏭️  Skipping Google Maps (no business name or address)');
       }
 
       // Find email with Hunter.io (use website from AI or Google Places)
@@ -260,6 +338,7 @@ IMPORTANT:
       const websiteToCheck = businessData.website; // Already updated by Google Places if found
 
       if (websiteToCheck) {
+        console.log(`[PROCESS] 📧 Searching for email at: ${websiteToCheck}`);
         try {
           // Validate and parse URL
           let websiteUrl = websiteToCheck;
@@ -281,12 +360,17 @@ IMPORTANT:
 
           if (hunterResponse.data.data?.emails && hunterResponse.data.data.emails.length > 0) {
             hunterEmail = hunterResponse.data.data.emails[0].value;
+            console.log(`[PROCESS] ✅ Hunter.io found email: ${hunterEmail}`);
+          } else {
+            console.log(`[PROCESS] ℹ️  Hunter.io found no emails for domain`);
           }
         } catch (error: any) {
-          console.error('Hunter.io error:', error);
+          console.error('[PROCESS] ❌ Hunter.io error:', error.message);
           await logApiUsage('hunter_io', null, 0.001, false, error.message);
           // Continue processing even if Hunter.io fails
         }
+      } else {
+        console.log('[PROCESS] ⏭️  Skipping Hunter.io (no website)');
       }
 
       // Build business data
@@ -296,9 +380,11 @@ IMPORTANT:
 
       // Skip this business if we don't have an address (required for unique constraint)
       if (!businessAddress) {
-        console.warn(`Skipping business "${businessData.business_name}" - no address found`);
+        console.warn(`[PROCESS] ⏭️  Skipping "${businessData.business_name}" - no address found`);
         continue;
       }
+
+      console.log(`[PROCESS] 💾 Saving to database...`);
 
       const businessDataToSave = {
         businessName: businessData.business_name,
@@ -311,7 +397,7 @@ IMPORTANT:
         email: hunterEmail || businessData.email,
         website: businessData.website,
         photoUrl: photo.fileUrl,
-        reviewStatus: 'pending_review',
+        leadStatus: 'new',
         aiExtractionRaw: {
           ...extractedData,
           extracted_business: businessData,
@@ -357,32 +443,24 @@ IMPORTANT:
         create: businessDataToSave,
       });
 
-      // Log activity
-      await prisma.activityLog.create({
-        data: {
-          businessId: business.id,
-          action: 'business_extracted',
-          details: {
-            photoId,
-            confidence: businessData.confidence_score,
-            isMultiTenant: extractedData.is_multi_tenant,
-            suiteNumber: businessData.suite_number,
-          },
-        },
-      });
+      console.log(`[PROCESS] ✅ Business saved: ${business.id} (${isNewBusiness ? 'NEW' : 'UPDATED'})`);
 
-      // Send Telegram alert for new businesses
-      if (isNewBusiness) {
-        try {
-          await sendLeadAlert({
-            businessId: business.id,
-            alertType: 'contact_ready',
-            customMessage: `New business extracted from photo with ${Math.round((businessData.confidence_score || 0) * 100)}% confidence`,
+      // Auto-enrich new businesses (runs in background)
+      if (isNewBusiness && business.id) {
+        console.log(`[PROCESS] 🚀 Starting background enrichment for "${business.businessName}"...`);
+        // Run enrichment asynchronously (don't await - let it run in background)
+        enrichBusiness(business.id)
+          .then((result) => {
+            console.log(`[PROCESS] ✅ Auto-enrichment completed for ${business.businessName}:`, {
+              leadScore: result.leadScore,
+              cost: result.totalCost,
+              enrichments: result.enrichments.filter(e => e.success).length,
+            });
+          })
+          .catch((error) => {
+            console.error(`[PROCESS] ❌ Auto-enrichment failed for ${business.businessName}:`, error);
+            // Don't fail the whole process if enrichment fails
           });
-        } catch (error) {
-          console.error('Failed to send Telegram alert for new business:', error);
-          // Don't fail the whole process if Telegram fails
-        }
       }
 
       createdBusinesses.push({
@@ -403,15 +481,31 @@ IMPORTANT:
       },
     });
 
+    const processDuration = Date.now() - processStartTime;
+    console.log(`\n[PROCESS] ========== ✅ Processing complete! ==========`);
+    console.log(`[PROCESS] Duration: ${processDuration}ms`);
+    console.log(`[PROCESS] Businesses created/updated: ${createdBusinesses.length}`);
+    console.log(`[PROCESS] Multi-tenant: ${extractedData.is_multi_tenant ? 'Yes' : 'No'}`);
+    if (extractedData.building_name) {
+      console.log(`[PROCESS] Building: ${extractedData.building_name}`);
+    }
+    console.log(`[PROCESS] ================================================\n`);
+
     return {
       success: true,
       businesses: createdBusinesses,
       count: createdBusinesses.length,
       isMultiTenant: extractedData.is_multi_tenant,
       buildingName: extractedData.building_name,
+      processDuration: `${processDuration}ms`
     };
   } catch (error: any) {
-    console.error('Processing error:', error);
+    const processDuration = Date.now() - processStartTime;
+    console.error(`\n[PROCESS] ========== ❌ Processing failed! ==========`);
+    console.error(`[PROCESS] Duration: ${processDuration}ms`);
+    console.error(`[PROCESS] Error: ${error.message}`);
+    console.error(`[PROCESS] Stack:`, error.stack);
+    console.error(`[PROCESS] ================================================\n`);
 
     await prisma.photo.update({
       where: { id: photoId },
@@ -421,7 +515,15 @@ IMPORTANT:
       },
     });
 
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message,
+      processDuration: `${processDuration}ms`,
+      debug: {
+        errorType: error.name,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }
+    };
   }
 }
 

@@ -48,7 +48,7 @@ export type Business = {
   formattedAddress: string | null
   phone: string | null
   email: string | null
-  reviewStatus: string
+  leadStatus: string
   googleRating: number | null
   googleReviewCount: number | null
   confidenceScore: number | null
@@ -234,10 +234,10 @@ export const columns: ColumnDef<Business>[] = [
     },
   },
   {
-    accessorKey: "reviewStatus",
+    accessorKey: "leadStatus",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("reviewStatus") as string
+      const status = row.getValue("leadStatus") as string
 
       const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
         pending_review: { label: "Pending", variant: "secondary" },

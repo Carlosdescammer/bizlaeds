@@ -2,8 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, AlertTriangle, AlertCircle, CheckCircle, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import {
+  ArrowLeft,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle,
+  TrendingUp,
+  DollarSign,
+  Activity,
+  Zap,
+  Database,
+  Mail,
+  MapPin,
+  Eye,
+  RefreshCw,
+} from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
+import { Badge } from '@/components/ui/badge';
 
 type ServiceUsage = {
   service: string;
@@ -17,6 +32,7 @@ type ServiceUsage = {
 export default function UsagePage() {
   const [loading, setLoading] = useState(true);
   const [usageData, setUsageData] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchUsage();
@@ -39,13 +55,32 @@ export default function UsagePage() {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchUsage();
+    setTimeout(() => setRefreshing(false), 500);
+  };
+
   const getServiceName = (service: string) => {
     const names: Record<string, string> = {
-      openai: 'OpenAI (GPT-4 Vision)',
+      openai: 'OpenAI Vision API',
       google_maps: 'Google Maps API',
-      hunter_io: 'Hunter.io Email Finder',
+      hunter_io: 'Hunter.io',
     };
     return names[service] || service;
+  };
+
+  const getServiceIcon = (service: string) => {
+    switch (service) {
+      case 'openai':
+        return <Zap className="w-5 h-5" />;
+      case 'google_maps':
+        return <MapPin className="w-5 h-5" />;
+      case 'hunter_io':
+        return <Mail className="w-5 h-5" />;
+      default:
+        return <Database className="w-5 h-5" />;
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -64,13 +99,13 @@ export default function UsagePage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ok':
-        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100 border-green-200 dark:border-green-800';
+        return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
       case 'warning':
-        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-100 border-yellow-200 dark:border-yellow-800';
+        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
       case 'critical':
-        return 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-100 border-red-200 dark:border-red-800';
+        return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
       default:
-        return 'bg-muted text-foreground border-border';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -89,79 +124,96 @@ export default function UsagePage() {
 
   if (loading || !usageData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-              <Link href="/" className="text-muted-foreground hover:text-foreground flex-shrink-0">
-                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Top Navigation */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/leads" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">API Usage Monitor</h1>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">API Usage</h1>
             </div>
-            <ModeToggle />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 rounded-lg disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <ModeToggle />
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hunter.io Live Credits Banner */}
         {usageData?.hunterLive && (
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6 border-2 border-purple-200 dark:border-purple-800">
-            <div className="flex items-start justify-between">
-              <div className="w-full">
-                <h3 className="text-base sm:text-lg font-bold text-foreground flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-xl sm:text-2xl">🎯</span>
-                  <span>Hunter.io Live Credits</span>
-                  <span className="text-xs sm:text-sm font-normal px-2 py-1 rounded-full bg-purple-600 text-white">
-                    {usageData.hunterLive.plan}
-                  </span>
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-3 sm:mt-4">
+          <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-6 mb-8 text-white">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Mail className="w-6 h-6" />
+                  </div>
                   <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Credits</p>
-                    <p className="text-2xl sm:text-3xl font-bold text-purple-600">
+                    <h3 className="text-xl font-bold">Hunter.io Live Status</h3>
+                    <Badge className="bg-white/20 text-white border-white/30 mt-1">
+                      {usageData.hunterLive.plan}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+                    <p className="text-purple-100 text-sm mb-1">Search Credits</p>
+                    <p className="text-3xl font-bold">
                       {usageData.hunterLive.credits.available}
-                      <span className="text-sm sm:text-base text-muted-foreground ml-2">
+                      <span className="text-lg text-purple-100 ml-2">
                         / {usageData.hunterLive.credits.total}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {usageData.hunterLive.credits.used} credits used
+                    <div className="mt-2 w-full bg-white/20 rounded-full h-2">
+                      <div
+                        className="bg-white rounded-full h-2 transition-all"
+                        style={{
+                          width: `${(usageData.hunterLive.credits.available / usageData.hunterLive.credits.total) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+                    <p className="text-purple-100 text-sm mb-1">Searches Available</p>
+                    <p className="text-3xl font-bold">{usageData.hunterLive.searches.available}</p>
+                    <p className="text-sm text-purple-100 mt-2">
+                      {usageData.hunterLive.searches.used} used this month
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Searches</p>
-                    <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                      {usageData.hunterLive.searches.available}
-                      <span className="text-xs sm:text-sm text-muted-foreground ml-2">available</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {usageData.hunterLive.searches.used} used
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Verifications</p>
-                    <p className="text-xl sm:text-2xl font-bold text-green-600">
-                      {usageData.hunterLive.verifications.available}
-                      <span className="text-xs sm:text-sm text-muted-foreground ml-2">available</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {usageData.hunterLive.verifications.used} used
+
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+                    <p className="text-purple-100 text-sm mb-1">Verifications</p>
+                    <p className="text-3xl font-bold">{usageData.hunterLive.verifications.available}</p>
+                    <p className="text-sm text-purple-100 mt-2">
+                      {usageData.hunterLive.verifications.used} used this month
                     </p>
                   </div>
                 </div>
+
                 {usageData.hunterLive.resetDate && (
-                  <p className="text-sm text-muted-foreground mt-4">
-                    ⏱️ Resets on: <strong>{new Date(usageData.hunterLive.resetDate).toLocaleDateString()}</strong>
+                  <p className="text-purple-100 mt-4 text-sm">
+                    Resets on {new Date(usageData.hunterLive.resetDate).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -170,150 +222,135 @@ export default function UsagePage() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="font-medium text-sm sm:text-base text-muted-foreground">Total Cost</h3>
+              <div>
+                <h3 className="text-sm text-gray-500 dark:text-gray-400">Total Cost</h3>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  ${(usageData?.totals?.cost || 0).toFixed(2)}
+                </p>
+              </div>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground">
-              ${(usageData?.totals?.cost || 0).toFixed(2)}
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">This month</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">This month</p>
           </div>
 
-          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 dark:bg-indigo-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h3 className="font-medium text-sm sm:text-base text-muted-foreground">Total Requests</h3>
+              <div>
+                <h3 className="text-sm text-gray-500 dark:text-gray-400">API Requests</h3>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {usageData?.totals?.requests || 0}
+                </p>
+              </div>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground">
-              {usageData?.totals?.requests || 0}
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">API calls made</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Calls made</p>
           </div>
 
-          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border sm:col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                <Activity className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="font-medium text-sm sm:text-base text-muted-foreground">Active Alerts</h3>
+              <div>
+                <h3 className="text-sm text-gray-500 dark:text-gray-400">Active Alerts</h3>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {usageData?.alerts?.length || 0}
+                </p>
+              </div>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground">
-              {usageData?.alerts?.length || 0}
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Last 7 days</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Last 7 days</p>
           </div>
         </div>
 
         {/* Service Usage */}
-        <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8 border">
-          <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6">Service Usage</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Service Usage</h2>
+          </div>
 
-          <div className="space-y-6">
+          <div className="p-6 space-y-6">
             {(usageData?.services || []).map((service: ServiceUsage) => (
-              <div key={service.service} className="border-b border-border last:border-0 pb-6 last:pb-0">
-                <div className="flex items-center justify-between mb-3">
+              <div key={service.service} className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getStatusIcon(service.status)}
+                    <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                      {getServiceIcon(service.service)}
+                    </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
                         {getServiceName(service.service)}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {service.service === 'hunter_io'
-                          ? `${Number(service.estimatedCost).toFixed(1)} credits used`
-                          : service.service === 'openai' || service.service.includes('linkedin')
-                          ? `${service.requestsCount} requests • $${Number(service.estimatedCost).toFixed(2)}`
-                          : `${service.requestsCount} requests`
+                          ? `${Number(service.estimatedCost).toFixed(1)} credits • ${service.requestsCount} requests`
+                          : `${service.requestsCount} requests • $${Number(service.estimatedCost).toFixed(2)}`
                         }
                       </p>
                     </div>
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-                      service.status
-                    )}`}
-                  >
-                    {Number(service.percentage).toFixed(1)}%
-                  </span>
+
+                  <div className="flex items-center gap-3">
+                    {getStatusIcon(service.status)}
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(service.status)}`}>
+                      {Number(service.percentage).toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="relative">
-                  <div className="w-full bg-muted rounded-full h-3">
+                <div className="space-y-2">
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                     <div
-                      className={`h-3 rounded-full transition-all ${getProgressColor(
-                        service.status
-                      )}`}
+                      className={`h-3 rounded-full transition-all ${getProgressColor(service.status)}`}
                       style={{ width: `${Math.min(service.percentage, 100)}%` }}
                     />
                   </div>
 
-                  {/* Threshold markers */}
-                  <div className="relative h-6 mt-1">
-                    <div className="absolute left-[80%] transform -translate-x-1/2">
-                      <div className="w-px h-4 bg-yellow-400" />
-                      <span className="text-xs text-muted-foreground absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                        80%
-                      </span>
-                    </div>
-                    <div className="absolute left-[94%] transform -translate-x-1/2">
-                      <div className="w-px h-4 bg-red-400" />
-                      <span className="text-xs text-muted-foreground absolute left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                        94%
-                      </span>
-                    </div>
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span>
+                      {service.service === 'hunter_io'
+                        ? `${Number(service.estimatedCost).toFixed(1)} of ${service.limit} credits`
+                        : `$${Number(service.estimatedCost).toFixed(2)} of $${service.limit}`}
+                    </span>
+                    <span>
+                      {service.service === 'hunter_io'
+                        ? `${Number(service.limit - Number(service.estimatedCost)).toFixed(1)} remaining`
+                        : `$${Number(service.limit - Number(service.estimatedCost)).toFixed(2)} remaining`}
+                    </span>
                   </div>
-                </div>
-
-                {/* Limit Info */}
-                <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                  <span>
-                    {service.service === 'hunter_io'
-                      ? `${Number(service.estimatedCost).toFixed(1)} of ${service.limit} credits`
-                      : service.service === 'openai' || service.service.includes('linkedin')
-                      ? `$${Number(service.estimatedCost).toFixed(2)} of $${service.limit} budget`
-                      : `${service.requestsCount} of ${service.limit} requests`}
-                  </span>
-                  <span>
-                    {service.service === 'hunter_io'
-                      ? `${Number(service.limit - Number(service.estimatedCost)).toFixed(1)} credits remaining`
-                      : service.service === 'openai' || service.service.includes('linkedin')
-                      ? `$${Number(service.limit - Number(service.estimatedCost)).toFixed(2)} remaining`
-                      : `${service.limit - service.requestsCount} remaining`}
-                  </span>
                 </div>
 
                 {/* Warning Messages */}
                 {service.status === 'warning' && (
-                  <div className="mt-3 flex items-start gap-2 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                  <div className="flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
                         Approaching limit
                       </p>
-                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                        You've used over 80% of your free tier. Consider upgrading or reducing usage.
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                        You've used over 80% of your allocation. Consider monitoring usage closely.
                       </p>
                     </div>
                   </div>
                 )}
 
                 {service.status === 'critical' && (
-                  <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+                  <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-red-900 dark:text-red-100">
                         Critical: Near limit!
                       </p>
-                      <p className="text-sm text-red-700 dark:text-red-300">
-                        You've used over 94% of your free tier. Service may be interrupted soon.
+                      <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        You've used over 94% of your allocation. Service may be interrupted soon.
                       </p>
                     </div>
                   </div>
@@ -323,93 +360,63 @@ export default function UsagePage() {
           </div>
         </div>
 
-        {/* Recent Alerts */}
-        {usageData?.alerts && Array.isArray(usageData.alerts) && usageData.alerts.length > 0 && (
-          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8 border">
-            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Recent Alerts</h2>
-            <div className="space-y-3">
-              {usageData.alerts.map((alert: any) => (
-                <div
-                  key={alert.id}
-                  className={`flex items-start gap-3 p-4 rounded-lg border ${
-                    alert.alertLevel === 'critical'
-                      ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                      : 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800'
-                  }`}
-                >
-                  {alert.alertLevel === 'critical' ? (
-                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{alert.message}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {getServiceName(alert.service)} •{' '}
-                      {new Date(alert.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Recent Activity Log */}
         {usageData?.recentLogs && Array.isArray(usageData.recentLogs) && usageData.recentLogs.length > 0 && (
-          <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
-            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Recent API Activity</h2>
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full min-w-[640px]">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-900/50">
+                  <tr>
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Time
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Service
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Type
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Business
                     </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-right py-3 px-6 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Cost
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {usageData.recentLogs.map((log: any) => (
-                    <tr key={log.id} className="border-b border-border last:border-0">
-                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {usageData.recentLogs.slice(0, 20).map((log: any) => (
+                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                      <td className="py-3 px-6 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleTimeString()}
                       </td>
-                      <td className="py-3 px-4 text-sm text-foreground">
+                      <td className="py-3 px-6 text-sm text-gray-900 dark:text-white">
                         {getServiceName(log.service)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                      <td className="py-3 px-6 text-sm text-gray-600 dark:text-gray-400">
                         {log.requestType}
                       </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                      <td className="py-3 px-6 text-sm text-gray-600 dark:text-gray-400">
                         {log.business?.businessName || '-'}
                       </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                      <td className="py-3 px-6">
+                        <Badge
+                          className={
                             log.success
-                              ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100'
-                              : 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-100'
-                          }`}
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          }
                         >
                           {log.success ? 'Success' : 'Failed'}
-                        </span>
+                        </Badge>
                       </td>
-                      <td className="py-3 px-4 text-sm text-foreground text-right">
+                      <td className="py-3 px-6 text-sm text-gray-900 dark:text-white text-right font-mono">
                         ${Number(log.estimatedCost).toFixed(3)}
                       </td>
                     </tr>
@@ -419,7 +426,7 @@ export default function UsagePage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

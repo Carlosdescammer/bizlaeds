@@ -1,122 +1,100 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Edit2,
-  Save,
-  X,
-  CheckCircle,
-  XCircle,
+  Building2,
   Mail,
-  Loader2,
-  MapPin,
   Phone,
   Globe,
-  Calendar,
+  MapPin,
   Star,
+  Users,
+  Calendar,
+  ExternalLink,
+  Linkedin,
+  Twitter,
+  Facebook,
+  TrendingUp,
+  CheckCircle2,
+  AlertCircle,
   Clock,
-  DollarSign,
-  MessageSquare,
+  Target,
+  Zap,
   RefreshCw,
-  Search,
+  Edit,
   Trash2,
 } from 'lucide-react';
 import { ModeToggle } from '@/components/mode-toggle';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { HunterEnrichmentPanel } from '@/components/hunter-enrichment-panel';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import {
   calculateLeadScore,
-  getTimingRecommendation,
   generateBusinessInsights,
-  getRecommendedActions,
   getTalkingPoints,
+  getRecommendedActions,
+  getTimingRecommendation
 } from '@/lib/lead-scoring';
 
 type Business = {
   id: string;
   businessName: string;
   businessType: string | null;
+  industry: string | null;
+  companySize: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
   zipCode: string | null;
+  country: string | null;
+  formattedAddress: string | null;
   phone: string | null;
   email: string | null;
+  emailValid: boolean | null;
   website: string | null;
-  reviewStatus: string;
-  confidenceScore: number | null;
-  createdAt: string;
-  approvedAt: string | null;
-  photos: any[];
-  emailCampaigns: any[];
-  // Google Places fields
+  contactName: string | null;
+
+  // Location
+  latitude: number | null;
+  longitude: number | null;
+  googlePlaceId: string | null;
+
+  // Google enrichment
   googleRating: number | null;
   googleReviewCount: number | null;
-  googlePriceLevel: number | null;
-  googleBusinessHours: any;
-  formattedAddress: string | null;
-  googlePhotosData: any;
-  googleEnrichedAt: string | null;
-  // Hunter.io enrichment fields
-  contactName?: string | null;
-  contactPosition?: string | null;
-  contactSeniority?: string | null;
-  contactDepartment?: string | null;
-  contactLinkedin?: string | null;
-  contactTwitter?: string | null;
-  contactLocation?: string | null;
-  hunterEmailCount?: number | null;
-  hunterVerificationStatus?: string | null;
-  hunterVerificationScore?: number | null;
-  emailConfidence?: number | null;
-  emailDeliverability?: string | null;
-  emailRiskLevel?: string | null;
-  relevanceScore?: number | null;
-  leadPriority?: string | null;
-  hunterEnrichedAt?: string | null;
-  hunterVerifiedAt?: string | null;
+
+  // Hunter.io enrichment
+  hunterEmailPattern: string | null;
+  hunterEmailCount: number | null;
+  hunterVerificationStatus: string | null;
+  hunterVerificationScore: number | null;
+  hunterEnrichedAt: string | null;
+
+  // Social profiles
+  linkedinUrl: string | null;
+  twitterHandle: string | null;
+  facebookUrl: string | null;
+  logoUrl: string | null;
+
+  // Lead management
+  leadStatus: string;
+  leadPriority: string | null;
+  confidenceScore: number | null;
+  createdAt: string;
+  lastContactedAt: string | null;
+  nextFollowUpAt: string | null;
 };
 
 export default function BusinessDetailPage() {
   const params = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const businessId = params.id;
-  const initialTab = searchParams.get('tab') || 'details';
 
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [formData, setFormData] = useState<Partial<Business>>({});
-
-  // Email state
-  const [generatingEmail, setGeneratingEmail] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [emailDraft, setEmailDraft] = useState<any>(null);
-
-  // Enrichment state
-  const [enrichingGoogle, setEnrichingGoogle] = useState(false);
-  const [enrichingHunter, setEnrichingHunter] = useState(false);
+  const [enriching, setEnriching] = useState(false);
 
   useEffect(() => {
     fetchBusiness();
@@ -128,7 +106,6 @@ export default function BusinessDetailPage() {
       const response = await fetch(`/api/businesses/${businessId}`);
       const data = await response.json();
       setBusiness(data.business);
-      setFormData(data.business);
     } catch (error) {
       console.error('Failed to fetch business:', error);
     } finally {
@@ -136,1048 +113,708 @@ export default function BusinessDetailPage() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleEnrich = async () => {
+    setEnriching(true);
+    try {
+      const response = await fetch('/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchBusiness();
+      }
+    } catch (error) {
+      console.error('Enrichment failed:', error);
+    } finally {
+      setEnriching(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this business?')) return;
+
     try {
       const response = await fetch(`/api/businesses/${businessId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        await fetchBusiness();
-        setEditing(false);
-      }
-    } catch (error) {
-      console.error('Failed to save:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    setSaving(true);
-    try {
-      await fetch(`/api/businesses/${businessId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewStatus: 'approved' }),
-      });
-      await fetchBusiness();
-    } catch (error) {
-      console.error('Failed to approve:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleReject = async () => {
-    setSaving(true);
-    try {
-      await fetch(`/api/businesses/${businessId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewStatus: 'rejected' }),
-      });
-      await fetchBusiness();
-    } catch (error) {
-      console.error('Failed to reject:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const generateEmail = async () => {
-    setGeneratingEmail(true);
-    try {
-      const response = await fetch('/api/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId,
-          action: 'generate',
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setEmailDraft(data.campaign);
-      }
-    } catch (error) {
-      console.error('Failed to generate email:', error);
-    } finally {
-      setGeneratingEmail(false);
-    }
-  };
-
-  const sendEmail = async () => {
-    if (!emailDraft && !business?.email) return;
-
-    setSendingEmail(true);
-    try {
-      const response = await fetch('/api/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId,
-          action: 'send',
-          campaignId: emailDraft?.id,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        alert('Email sent successfully!');
-        await fetchBusiness();
-        setEmailDraft(null);
-      }
-    } catch (error) {
-      console.error('Failed to send email:', error);
-      alert('Failed to send email');
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
-  const enrichWithGoogle = async () => {
-    setEnrichingGoogle(true);
-    try {
-      const response = await fetch(`/api/businesses/${businessId}/enrich`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'google' }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        alert('✅ Google Places data refreshed successfully!');
-        await fetchBusiness();
-      } else {
-        alert('❌ ' + (data.error || 'Failed to enrich with Google'));
-      }
-    } catch (error) {
-      console.error('Failed to enrich with Google:', error);
-      alert('❌ Failed to enrich with Google');
-    } finally {
-      setEnrichingGoogle(false);
-    }
-  };
-
-  const enrichWithHunter = async () => {
-    setEnrichingHunter(true);
-    try {
-      const response = await fetch(`/api/businesses/${businessId}/enrich`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'hunter' }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        alert(`✅ Found ${data.emails?.length || 1} email(s)! Email updated.`);
-        await fetchBusiness();
-      } else {
-        alert('❌ ' + (data.error || 'Failed to find email'));
-      }
-    } catch (error) {
-      console.error('Failed to enrich with Hunter:', error);
-      alert('❌ Failed to find email');
-    } finally {
-      setEnrichingHunter(false);
-    }
-  };
-
-  const deleteBusiness = async () => {
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/businesses/${businessId}/delete`, {
         method: 'DELETE',
       });
 
-      const data = await response.json();
-      if (data.success) {
+      if (response.ok) {
         router.push('/leads');
-      } else {
-        alert('❌ ' + (data.error || 'Failed to delete business'));
-        setDeleting(false);
       }
     } catch (error) {
-      console.error('Failed to delete business:', error);
-      alert('❌ Failed to delete business');
-      setDeleting(false);
+      console.error('Failed to delete:', error);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Business not found</h2>
-          <Link href="/leads" className="text-primary hover:text-primary/80">
-            Back to Leads
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Business not found</h2>
+          <Link href="/leads" className="text-blue-600 hover:text-blue-700">
+            ← Back to Leads
           </Link>
         </div>
       </div>
     );
   }
 
+  const leadScore = calculateLeadScore(business);
+  const scoreColor = leadScore >= 80 ? 'text-green-600' : leadScore >= 50 ? 'text-yellow-600' : 'text-gray-600';
+  const priorityColor =
+    business.leadPriority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+    business.leadPriority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+    'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+
+  // Generate insights and recommendations
+  const businessInsights = generateBusinessInsights(business);
+  const talkingPoints = getTalkingPoints(business);
+  const recommendedActions = getRecommendedActions(business);
+  const timingRec = getTimingRecommendation(business);
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-              <Link href="/leads" className="text-muted-foreground hover:text-foreground flex-shrink-0">
-                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Top Navigation */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/leads" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">{business.businessName}</h1>
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Lead Details</h1>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-3">
               <button
-                onClick={enrichWithGoogle}
-                disabled={enrichingGoogle}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 min-h-[44px]"
+                onClick={handleEnrich}
+                disabled={enriching}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 rounded-lg disabled:opacity-50"
               >
-                {enrichingGoogle ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                <span className="hidden sm:inline">Google</span>
+                <RefreshCw className={`w-4 h-4 ${enriching ? 'animate-spin' : ''}`} />
+                {enriching ? 'Enriching...' : 'Enrich Data'}
               </button>
-              <button
-                onClick={enrichWithHunter}
-                disabled={enrichingHunter || !business.website}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 min-h-[44px]"
-                title={!business.website ? "Website required" : "Find email with Hunter.io"}
-              >
-                {enrichingHunter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                <span className="hidden sm:inline">Email</span>
-              </button>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    disabled={deleting}
-                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 min-h-[44px]"
-                    title="Delete business"
-                  >
-                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete <strong>{business.businessName}</strong> and all associated data (photos, emails, campaigns). This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={deleteBusiness}
-                      disabled={deleting}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      {deleting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Deleting...
-                        </>
-                      ) : (
-                        'Delete'
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
               <ModeToggle />
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Photo */}
-            {business.photos[0]?.fileUrl && (
-              <div className="bg-card rounded-lg shadow-md overflow-hidden border">
-                <img
-                  src={business.photos[0].fileUrl}
-                  alt={business.businessName}
-                  className="w-full h-auto"
-                />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content - Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Company Header Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-start gap-4">
+                {/* Company Logo */}
+                <div className="flex-shrink-0">
+                  {business.logoUrl ? (
+                    <img
+                      src={business.logoUrl}
+                      alt={business.businessName}
+                      className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <Building2 className="w-8 h-8 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Company Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">
+                      {business.businessName}
+                    </h2>
+                    {business.emailValid && (
+                      <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" title="Verified" />
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    {business.industry && (
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        {business.industry}
+                      </span>
+                    )}
+                    {business.companySize && (
+                      <>
+                        <span className="text-gray-300 dark:text-gray-600">•</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {business.companySize} employees
+                        </span>
+                      </>
+                    )}
+                    {business.googleRating && (
+                      <>
+                        <span className="text-gray-300 dark:text-gray-600">•</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          {business.googleRating} ({business.googleReviewCount} reviews)
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Quick Links */}
+                  <div className="flex flex-wrap gap-2">
+                    {business.website && (
+                      <a
+                        href={business.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        <Globe className="w-4 h-4" />
+                        Website
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    {business.linkedinUrl && (
+                      <a
+                        href={business.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        <Linkedin className="w-4 h-4" />
+                        LinkedIn
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    {business.twitterHandle && (
+                      <a
+                        href={`https://twitter.com/${business.twitterHandle}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        <Twitter className="w-4 h-4" />
+                        Twitter
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    {business.facebookUrl && (
+                      <a
+                        href={business.facebookUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        <Facebook className="w-4 h-4" />
+                        Facebook
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
 
-            {/* Google Photos Gallery */}
-            {business.googlePhotosData && Array.isArray(business.googlePhotosData) && business.googlePhotosData.length > 0 && (
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <span className="text-xl">📸</span>
-                    Google Photos ({business.googlePhotosData.length})
-                  </CardTitle>
-                  <CardDescription className="text-sm">Professional photos from Google Places</CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-                    {business.googlePhotosData.slice(0, 9).map((photo: any, idx: number) => (
-                      <div key={idx} className="aspect-square sm:aspect-video rounded-lg overflow-hidden border border-border bg-muted">
-                        <img
-                          src={`/api/google-photo?photo_reference=${photo.photo_reference}&maxwidth=400`}
-                          alt={`${business.businessName} photo ${idx + 1}`}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => window.open(`/api/google-photo?photo_reference=${photo.photo_reference}&maxwidth=1600`, '_blank')}
-                        />
+            {/* Business Summary & Insights Card */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="p-2 bg-blue-500 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Business Summary & Insights</h3>
+              </div>
+
+              {/* Quick Decision Metrics */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-5 mb-5 border border-gray-200 dark:border-gray-700">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  Quick Decision Metrics
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Company Size</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      {business.companySize || 'Unknown'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Industry</div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {business.industry || 'Unknown'}
+                    </div>
+                  </div>
+                  {business.googleRating && (
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reputation</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        {business.googleRating}/5.0
+                        <span className="text-sm font-normal text-gray-500">
+                          ({business.googleReviewCount} reviews)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Data Quality</div>
+                    <div className="text-lg font-bold flex items-center gap-2">
+                      <span className={leadScore >= 80 ? 'text-green-600' : leadScore >= 50 ? 'text-yellow-600' : 'text-gray-600'}>
+                        {leadScore}/100
+                      </span>
+                      {leadScore >= 80 && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Decision Indicators */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className={`p-3 rounded-lg ${business.email && business.emailValid ? 'bg-green-100 dark:bg-green-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                      <CheckCircle2 className={`w-5 h-5 mx-auto mb-1 ${business.email && business.emailValid ? 'text-green-600' : 'text-gray-400'}`} />
+                      <div className="text-xs font-medium">Email Ready</div>
+                    </div>
+                    <div className={`p-3 rounded-lg ${business.phone ? 'bg-green-100 dark:bg-green-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                      <CheckCircle2 className={`w-5 h-5 mx-auto mb-1 ${business.phone ? 'text-green-600' : 'text-gray-400'}`} />
+                      <div className="text-xs font-medium">Phone Contact</div>
+                    </div>
+                    <div className={`p-3 rounded-lg ${business.website ? 'bg-green-100 dark:bg-green-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                      <CheckCircle2 className={`w-5 h-5 mx-auto mb-1 ${business.website ? 'text-green-600' : 'text-gray-400'}`} />
+                      <div className="text-xs font-medium">Website</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Business Insights */}
+              {businessInsights.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-5 mb-5 border border-gray-200 dark:border-gray-700">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-600" />
+                    Key Business Insights
+                  </h4>
+                  <ul className="space-y-2">
+                    {businessInsights.map((insight, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <span className="text-blue-500 mt-1">•</span>
+                        <span>{insight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Email Talking Points */}
+              {talkingPoints.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-5 mb-5 border border-gray-200 dark:border-gray-700">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-green-600" />
+                    Email Talking Points
+                  </h4>
+                  <div className="space-y-2">
+                    {talkingPoints.map((point, index) => (
+                      <div key={index} className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                          {index + 1}
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">{point}</p>
                       </div>
                     ))}
                   </div>
-                  {business.googlePhotosData.length > 9 && (
-                    <p className="text-sm text-muted-foreground mt-4 text-center">
-                      +{business.googlePhotosData.length - 9} more photos available
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Hunter.io Enrichment Panel */}
-            <HunterEnrichmentPanel business={business} onRefresh={fetchBusiness} />
-
-            {/* Business Intelligence Card */}
-            {(() => {
-              const leadScore = calculateLeadScore(business);
-              const timing = getTimingRecommendation(business);
-              const insights = generateBusinessInsights(business);
-              const actions = getRecommendedActions(business, timing);
-              const talkingPoints = getTalkingPoints(business);
-
-              return (
-                <Card className="border-2">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <span className="text-2xl">🎯</span>
-                        Lead Intelligence
-                      </CardTitle>
-                      <Badge className={`${leadScore.color} border px-3 py-1`}>
-                        {leadScore.label}: {leadScore.total}/100
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Contact Readiness */}
-                    <div>
-                      <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
-                        Contact Readiness
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <div className={`p-3 rounded-lg border ${business.email ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-muted border-border'}`}>
-                          <div className="flex items-center gap-2">
-                            <Mail className={`w-4 h-4 ${business.email ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
-                            <span className={`text-sm font-medium ${business.email ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
-                              {business.email ? 'Email ✓' : 'No Email'}
-                            </span>
-                          </div>
-                          {business.email && (
-                            <p className="text-xs text-green-700 dark:text-green-300 mt-1 truncate">{business.email}</p>
-                          )}
-                        </div>
-
-                        <div className={`p-3 rounded-lg border ${business.phone ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-muted border-border'}`}>
-                          <div className="flex items-center gap-2">
-                            <Phone className={`w-4 h-4 ${business.phone ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
-                            <span className={`text-sm font-medium ${business.phone ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
-                              {business.phone ? 'Phone ✓' : 'No Phone'}
-                            </span>
-                          </div>
-                          {business.phone && (
-                            <p className="text-xs text-green-700 dark:text-green-300 mt-1">{business.phone}</p>
-                          )}
-                        </div>
-
-                        <div className={`p-3 rounded-lg border ${business.website ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : 'bg-muted border-border'}`}>
-                          <div className="flex items-center gap-2">
-                            <Globe className={`w-4 h-4 ${business.website ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
-                            <span className={`text-sm font-medium ${business.website ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
-                              {business.website ? 'Website ✓' : 'No Website'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Business Strength */}
-                    {(business.googleRating || business.googleBusinessHours || business.googlePriceLevel) && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
-                          <Star className="w-4 h-4" />
-                          Business Strength
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                          {business.googleRating && (
-                            <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
-                              <div className="flex items-center gap-2">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-                                  {Number(business.googleRating).toFixed(1)} Stars
-                                </span>
-                              </div>
-                              {business.googleReviewCount && (
-                                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">{business.googleReviewCount} reviews</p>
-                              )}
-                            </div>
-                          )}
-
-                          {business.googleBusinessHours && (
-                            <div className={`p-3 rounded-lg border ${
-                              timing.status === 'open'
-                                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
-                                : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                            }`}>
-                              <div className="flex items-center gap-2">
-                                <Clock className={`w-4 h-4 ${timing.statusColor}`} />
-                                <span className={`text-sm font-medium ${
-                                  timing.status === 'open' ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'
-                                }`}>
-                                  {timing.message}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {business.googlePriceLevel && (
-                            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-                              <div className="flex items-center gap-2">
-                                <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                  {'$'.repeat(business.googlePriceLevel)} Pricing
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AI Insights */}
-                    {insights.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          AI Insights
-                        </h4>
-                        <div className="space-y-2">
-                          {insights.map((insight, idx) => (
-                            <div
-                              key={idx}
-                              className={`p-3 rounded-lg border text-sm ${
-                                insight.type === 'positive'
-                                  ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100'
-                                  : insight.type === 'negative'
-                                  ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100'
-                                  : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100'
-                              }`}
-                            >
-                              <span className="mr-2">{insight.icon}</span>
-                              {insight.text}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Recommended Actions */}
-                    {actions.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4" />
-                          Recommended Actions
-                        </h4>
-                        <div className="space-y-2">
-                          {actions.map((action, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-sm text-foreground">
-                              <span className="text-primary mt-0.5">•</span>
-                              <span>{action}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Talking Points */}
-                    {talkingPoints.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-sm mb-3 text-foreground flex items-center gap-2">
-                          💬 Talking Points
-                        </h4>
-                        <div className="space-y-2">
-                          {talkingPoints.map((point, idx) => (
-                            <div key={idx} className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800">
-                              <p className="text-sm text-purple-900 dark:text-purple-100 italic">{point}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })()}
-
-            {/* Google Places Info Card */}
-            {(business.googleRating || business.googleBusinessHours || business.googlePriceLevel) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="w-5 h-5 text-blue-600" />
-                    Google Places Information
-                  </CardTitle>
-                  {business.formattedAddress && (
-                    <CardDescription>{business.formattedAddress}</CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {/* Rating */}
-                    {business.googleRating && (
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1 mb-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-2xl font-bold text-foreground">{Number(business.googleRating).toFixed(1)}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <MessageSquare className="w-3 h-3" />
-                          {business.googleReviewCount || 0} reviews
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Price Level */}
-                    {business.googlePriceLevel && (
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1 mb-1">
-                          <DollarSign className="w-4 h-4 text-green-600" />
-                          <span className="text-lg font-semibold text-green-600">
-                            {'$'.repeat(business.googlePriceLevel)}
-                          </span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">Price level</span>
-                      </div>
-                    )}
-
-                    {/* Business Hours Status */}
-                    {business.googleBusinessHours?.open_now !== undefined && (
-                      <div className="flex flex-col">
-                        <Badge
-                          variant={business.googleBusinessHours.open_now ? "default" : "secondary"}
-                          className="w-fit mb-1"
-                        >
-                          <Clock className="w-3 h-3 mr-1" />
-                          {business.googleBusinessHours.open_now ? 'Open Now' : 'Closed'}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">Current status</span>
-                      </div>
-                    )}
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <Link
+                      href={`/compose?businessId=${businessId}`}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Use these points to generate email
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
                   </div>
+                </div>
+              )}
 
-                  {/* Business Hours */}
-                  {business.googleBusinessHours?.weekday_text && (
-                    <>
-                      <Separator className="my-4" />
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-foreground">
-                          <Clock className="w-4 h-4" />
-                          Business Hours
-                        </h4>
-                        <div className="grid gap-1 text-sm">
-                          {business.googleBusinessHours.weekday_text.map((day: string, idx: number) => (
-                            <div key={idx} className="flex justify-between">
-                              <span className="text-muted-foreground">{day.split(': ')[0]}:</span>
-                              <span className="font-medium text-foreground">{day.split(': ')[1]}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+              {/* Recommended Actions */}
+              {recommendedActions.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-5 mb-5 border border-gray-200 dark:border-gray-700">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-purple-600" />
+                    Recommended Next Actions
+                  </h4>
+                  <ul className="space-y-2">
+                    {recommendedActions.map((action, index) => (
+                      <li key={index} className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <div className="w-5 h-5 rounded border-2 border-purple-400 flex-shrink-0 mt-0.5"></div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{action}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {/* Tabs */}
-            <div className="bg-card rounded-lg shadow-md border">
-              <div className="border-b border-border overflow-x-auto">
-                <nav className="flex -mb-px">
-                  <button
-                    onClick={() => setActiveTab('details')}
-                    className={`px-4 sm:px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap min-h-[48px] ${
-                      activeTab === 'details'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Details
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('email')}
-                    className={`px-4 sm:px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap min-h-[48px] ${
-                      activeTab === 'email'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Email
-                  </button>
-                </nav>
+              {/* Follow-up Timing */}
+              <div className={`bg-white dark:bg-gray-800 rounded-lg p-5 border-2 ${
+                timingRec.urgency === 'high' ? 'border-red-300 dark:border-red-700' :
+                timingRec.urgency === 'medium' ? 'border-yellow-300 dark:border-yellow-700' :
+                'border-gray-300 dark:border-gray-600'
+              }`}>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-orange-600" />
+                  Follow-up Timing
+                </h4>
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-lg flex-shrink-0 ${
+                    timingRec.urgency === 'high' ? 'bg-red-100 dark:bg-red-900/20' :
+                    timingRec.urgency === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+                    'bg-gray-100 dark:bg-gray-800'
+                  }`}>
+                    <div className={`text-2xl font-bold ${
+                      timingRec.urgency === 'high' ? 'text-red-600' :
+                      timingRec.urgency === 'medium' ? 'text-yellow-600' :
+                      'text-gray-600'
+                    }`}>
+                      {timingRec.urgency === 'high' ? '!' : timingRec.urgency === 'medium' ? '•' : '→'}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className={`text-lg font-bold mb-1 ${
+                      timingRec.urgency === 'high' ? 'text-red-600 dark:text-red-400' :
+                      timingRec.urgency === 'medium' ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {timingRec.timing}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {timingRec.reason}
+                    </div>
+                  </div>
+                  <Badge className={
+                    timingRec.urgency === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                    timingRec.urgency === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                  }>
+                    {timingRec.urgency.toUpperCase()}
+                  </Badge>
+                </div>
               </div>
+            </div>
 
-              <div className="p-4 sm:p-6">
-                {/* Details Tab */}
-                {activeTab === 'details' && (
-                  <div className="space-y-4">
-                    {editing ? (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Business Name
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.businessName || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, businessName: e.target.value })
-                            }
-                            placeholder="Enter business name"
-                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Business Type
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.businessType || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, businessType: e.target.value })
-                            }
-                            placeholder="Enter business type"
-                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Address
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.address || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, address: e.target.value })
-                            }
-                            placeholder="Enter address"
-                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              City
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.city || ''}
-                              onChange={(e) =>
-                                setFormData({ ...formData, city: e.target.value })
-                              }
-                              placeholder="Enter city"
-                              className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              State
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.state || ''}
-                              onChange={(e) =>
-                                setFormData({ ...formData, state: e.target.value })
-                              }
-                              placeholder="Enter state"
-                              className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Phone
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.phone || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, phone: e.target.value })
-                            }
-                            placeholder="Enter phone number"
-                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            value={formData.email || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, email: e.target.value })
-                            }
-                            placeholder="Enter email address"
-                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Website
-                          </label>
-                          <input
-                            type="url"
-                            value={formData.website || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, website: e.target.value })
-                            }
-                            placeholder="Enter website URL"
-                            className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        <div className="flex gap-3">
-                          <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Save
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditing(false);
-                              setFormData(business);
-                            }}
-                            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-                          >
-                            <X className="w-4 h-4" />
-                            Cancel
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="grid gap-4">
-                          {business.businessType && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Type</label>
-                              <p className="text-foreground">{business.businessType}</p>
-                            </div>
-                          )}
-
-                          {business.address && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <MapPin className="w-4 h-4" />
-                                Address
-                              </label>
-                              <p className="text-foreground">
-                                {business.address}
-                                {business.city && `, ${business.city}`}
-                                {business.state && `, ${business.state}`}
-                                {business.zipCode && ` ${business.zipCode}`}
-                              </p>
-                            </div>
-                          )}
-
-                          {business.phone && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Phone className="w-4 h-4" />
-                                Phone
-                              </label>
-                              <p className="text-foreground">{business.phone}</p>
-                            </div>
-                          )}
-
-                          {business.email && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Mail className="w-4 h-4" />
-                                Email
-                              </label>
-                              <p className="text-foreground">{business.email}</p>
-                            </div>
-                          )}
-
-                          {business.website && (
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                                <Globe className="w-4 h-4" />
-                                Website
-                              </label>
-                              <a
-                                href={business.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:text-primary/80"
-                              >
-                                {business.website}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={() => setEditing(true)}
-                          className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/80"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Edit
-                        </button>
-                      </>
-                    )}
+            {/* Contact Information Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Contact Information</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                {business.contactName && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                      <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Contact Name</div>
+                      <div className="text-base font-medium text-gray-900 dark:text-white">{business.contactName}</div>
+                    </div>
                   </div>
                 )}
 
-                {/* Email Tab */}
-                {activeTab === 'email' && (
-                  <div className="space-y-4">
-                    {!business.email ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">No email address available</p>
+                {business.email && (
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      business.hunterVerificationStatus === 'deliverable' ? 'bg-green-100 dark:bg-green-900/20' :
+                      business.hunterVerificationStatus === 'risky' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+                      business.hunterVerificationStatus === 'undeliverable' ? 'bg-red-100 dark:bg-red-900/20' :
+                      'bg-green-100 dark:bg-green-900/20'
+                    }`}>
+                      <Mail className={`w-5 h-5 ${
+                        business.hunterVerificationStatus === 'deliverable' ? 'text-green-600 dark:text-green-400' :
+                        business.hunterVerificationStatus === 'risky' ? 'text-yellow-600 dark:text-yellow-400' :
+                        business.hunterVerificationStatus === 'undeliverable' ? 'text-red-600 dark:text-red-400' :
+                        'text-green-600 dark:text-green-400'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Email</div>
+                        {/* Hunter.io Verification Badge */}
+                        {business.hunterVerificationStatus === 'deliverable' && (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            ✓ Verified ({business.hunterVerificationScore}/100)
+                          </Badge>
+                        )}
+                        {business.hunterVerificationStatus === 'risky' && (
+                          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            ⚠ Risky ({business.hunterVerificationScore}/100)
+                          </Badge>
+                        )}
+                        {business.hunterVerificationStatus === 'undeliverable' && (
+                          <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            ✗ Invalid
+                          </Badge>
+                        )}
+                        {!business.hunterVerificationStatus && business.emailValid === true && (
+                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            Format Valid
+                          </Badge>
+                        )}
+                        {!business.hunterVerificationStatus && business.emailValid === false && (
+                          <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            Invalid Format
+                          </Badge>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        {!emailDraft ? (
-                          <div className="text-center py-8">
-                            <button
-                              onClick={generateEmail}
-                              disabled={generatingEmail}
-                              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 mx-auto"
-                            >
-                              {generatingEmail ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                              ) : (
-                                <Mail className="w-5 h-5" />
-                              )}
-                              {generatingEmail ? 'Generating...' : 'Generate Email'}
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                                To: {emailDraft.recipient}
-                              </label>
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                                Subject
-                              </label>
-                              <input
-                                type="text"
-                                value={emailDraft.subject}
-                                onChange={(e) =>
-                                  setEmailDraft({ ...emailDraft, subject: e.target.value })
-                                }
-                                className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                                Message
-                              </label>
-                              <textarea
-                                value={emailDraft.body}
-                                onChange={(e) =>
-                                  setEmailDraft({ ...emailDraft, body: e.target.value })
-                                }
-                                rows={12}
-                                className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary font-mono text-sm"
-                              />
-                            </div>
-
-                            <div className="flex gap-3">
-                              <button
-                                onClick={sendEmail}
-                                disabled={sendingEmail}
-                                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                              >
-                                {sendingEmail ? (
-                                  <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                  <Mail className="w-5 h-5" />
-                                )}
-                                {sendingEmail ? 'Sending...' : 'Send Email'}
-                              </button>
-
-                              <button
-                                onClick={() => setEmailDraft(null)}
-                                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-                              >
-                                <X className="w-4 h-4" />
-                                Cancel
-                              </button>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Email History */}
-                        {business.emailCampaigns.length > 0 && (
-                          <div className="mt-8 border-t pt-6">
-                            <h3 className="font-bold text-lg mb-4">Email History</h3>
-                            <div className="space-y-3">
-                              {business.emailCampaigns.map((campaign: any) => (
-                                <div
-                                  key={campaign.id}
-                                  className="border border-border rounded-lg p-4 bg-card"
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium text-foreground">{campaign.subject || 'No subject'}</span>
-                                    <span
-                                      className={`px-2 py-1 rounded text-xs font-medium ${
-                                        campaign.sent
-                                          ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100'
-                                          : 'bg-muted text-foreground'
-                                      }`}
-                                    >
-                                      {campaign.sent ? 'sent' : 'draft'}
-                                    </span>
-                                  </div>
-                                  {campaign.sentAt && (
-                                    <p className="text-sm text-muted-foreground">
-                                      <Calendar className="w-4 h-4 inline mr-1" />
-                                      {new Date(campaign.sentAt).toLocaleString()}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                      <a href={`mailto:${business.email}`} className="text-base font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                        {business.email}
+                      </a>
+                      {business.hunterEmailPattern && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Pattern: {business.hunterEmailPattern}
+                          {business.hunterEmailCount && ` • ${business.hunterEmailCount} emails found`}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {business.phone && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Phone</div>
+                      <a href={`tel:${business.phone}`} className="text-base font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                        {business.phone}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {business.formattedAddress && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Location</div>
+                      <div className="text-base font-medium text-gray-900 dark:text-white">{business.formattedAddress}</div>
+                      {business.googlePlaceId && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.formattedAddress)}&query_place_id=${business.googlePlaceId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 inline-flex items-center gap-1 mt-1"
+                        >
+                          View on Google Maps
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Enrichment Data Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Data Enrichment</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Data Quality</div>
+                    <div className={`text-2xl font-bold ${scoreColor}`}>{leadScore}%</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Lead Score</div>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Confidence</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {business.confidenceScore ? Math.round(business.confidenceScore * 100) : 0}%
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">OCR Accuracy</div>
+                  </div>
+
+                  {business.googleRating && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Google Rating</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{business.googleRating}</div>
+                        <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{business.googleReviewCount} reviews</div>
+                    </div>
+                  )}
+
+                  {business.hunterEnrichedAt && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Hunter.io</div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Enriched</span>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {new Date(business.hunterEnrichedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-4 sm:space-y-6 lg:order-last order-first">
-            {/* Status Card */}
-            <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
-              <h3 className="font-bold text-lg mb-4 text-foreground">Review Status</h3>
-
-              <div className="mb-4">
-                <span
-                  className={`inline-block px-4 py-2 rounded-lg font-medium ${
-                    business.reviewStatus === 'approved'
-                      ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-100'
-                      : business.reviewStatus === 'rejected'
-                      ? 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-100'
-                      : 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-100'
-                  }`}
-                >
-                  {business.reviewStatus.replace('_', ' ').toUpperCase()}
-                </span>
+          {/* Right Sidebar */}
+          <div className="space-y-6">
+            {/* Lead Score Card */}
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-6 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-5 h-5" />
+                <h3 className="font-semibold">Lead Score</h3>
               </div>
-
-              {business.reviewStatus === 'pending_review' && (
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={handleApprove}
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Approve
-                  </button>
-                  <button
-                    onClick={handleReject}
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Reject
-                  </button>
-                </div>
-              )}
-
-              {business.confidenceScore !== null && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-muted-foreground block mb-2">
-                    AI Confidence
-                  </label>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {Math.round(Number(business.confidenceScore) * 100)}%
-                  </div>
-                </div>
-              )}
+              <div className="text-4xl font-bold mb-1">{leadScore}</div>
+              <div className="text-blue-100 text-sm">
+                {leadScore >= 80 ? 'High Priority Lead' : leadScore >= 50 ? 'Good Potential' : 'Needs More Data'}
+              </div>
             </div>
 
-            {/* Metadata */}
-            <div className="bg-card rounded-lg shadow-md p-4 sm:p-6 border">
-              <h3 className="font-bold text-lg mb-4 text-foreground">Metadata</h3>
-              <div className="space-y-3 text-sm">
+            {/* Status & Priority Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Status & Priority</h3>
+
+              <div className="space-y-3">
                 <div>
-                  <label className="text-muted-foreground">Created</label>
-                  <p className="text-foreground">
-                    {new Date(business.createdAt).toLocaleDateString()}
-                  </p>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Lead Status</div>
+                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    {(business.leadStatus || 'new').toUpperCase()}
+                  </Badge>
                 </div>
-                {business.approvedAt && (
+
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Priority</div>
+                  <Badge className={priorityColor}>
+                    {(business.leadPriority || 'medium').toUpperCase()}
+                  </Badge>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Created</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    {new Date(business.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+
+                {business.lastContactedAt && (
                   <div>
-                    <label className="text-muted-foreground">Approved</label>
-                    <p className="text-foreground">
-                      {new Date(business.approvedAt).toLocaleDateString()}
-                    </p>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Last Contacted</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {new Date(business.lastContactedAt).toLocaleDateString()}
+                    </div>
                   </div>
                 )}
-                <div>
-                  <label className="text-muted-foreground">Photos</label>
-                  <p className="text-foreground">{business.photos.length}</p>
+              </div>
+            </div>
+
+            {/* Quick Actions Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+
+              <div className="space-y-2">
+                {business.email && (
+                  <a
+                    href={`mailto:${business.email}`}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Send Email
+                  </a>
+                )}
+
+                <Link
+                  href={`/compose?businessId=${businessId}`}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 rounded-lg"
+                >
+                  <Zap className="w-4 h-4" />
+                  Generate Email
+                </Link>
+
+                <Link
+                  href={`/leads/${businessId}/edit`}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 rounded-lg"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Details
+                </Link>
+
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Lead
+                </button>
+              </div>
+            </div>
+
+            {/* Data Completeness */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Data Completeness</h3>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Email</span>
+                  {business.email ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                  )}
                 </div>
-                <div>
-                  <label className="text-muted-foreground">Emails Sent</label>
-                  <p className="text-foreground">
-                    {business.emailCampaigns.filter((c: any) => c.status === 'sent').length}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Phone</span>
+                  {business.phone ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Website</span>
+                  {business.website ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
+                  {business.googlePlaceId ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Social Profiles</span>
+                  {(business.linkedinUrl || business.twitterHandle || business.facebookUrl) ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

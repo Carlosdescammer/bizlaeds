@@ -75,7 +75,7 @@ function SignUpContent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
               placeholder="you@example.com"
             />
           </div>
@@ -91,7 +91,7 @@ function SignUpContent() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
               placeholder="••••••••"
             />
             <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
@@ -107,7 +107,7 @@ function SignUpContent() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
               placeholder="••••••••"
             />
           </div>

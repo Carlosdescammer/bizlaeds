@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Wand2, Save, Send, Loader2, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,25 @@ export default function EmailComposerPage() {
 
   // Email fields
   const [to, setTo] = useState('');
+
+  // Load URL parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const toParam = params.get('to');
+    const businessNameParam = params.get('businessName');
+
+    if (toParam) {
+      setTo(toParam);
+    }
+
+    if (businessNameParam && toParam) {
+      setSubject(`Follow up: Professional headshot services for ${businessNameParam}`);
+      toast({
+        title: 'Email pre-filled',
+        description: `Ready to compose email to ${businessNameParam}`,
+      });
+    }
+  }, [toast]);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
 

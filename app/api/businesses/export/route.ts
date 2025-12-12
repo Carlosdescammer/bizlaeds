@@ -3,27 +3,33 @@ import { prisma } from '@/lib/db';
 
 /**
  * GET /api/businesses/export
- * Export businesses to CSV format matching import_clients_template-2.csv
+ * Export businesses to CSV with all enriched data
  *
  * Query Parameters:
- * - format: 'csv' (default)
- * - status: 'approved' | 'pending_review' | 'flagged' (optional filter)
- * - startDate: ISO date string (optional)
- * - endDate: ISO date string (optional)
+ * - format: 'csv' | 'json' (default: csv)
+ * - leadStatus: Filter by lead status
+ * - leadPriority: Filter by priority (high/medium/low)
+ * - startDate: ISO date string
+ * - endDate: ISO date string
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'csv';
-    const status = searchParams.get('status');
+    const leadStatus = searchParams.get('leadStatus');
+    const leadPriority = searchParams.get('leadPriority');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
     // Build query filters
     const where: any = {};
 
-    if (status) {
-      where.reviewStatus = status;
+    if (leadStatus) {
+      where.leadStatus = leadStatus;
+    }
+
+    if (leadPriority) {
+      where.leadPriority = leadPriority;
     }
 
     if (startDate || endDate) {
@@ -42,132 +48,177 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (format === 'csv') {
-      // Generate CSV matching import_clients_template-2.csv format
-      // Headers: First Name,Last Name,Phone,Email,Company Name,Business Number,Street Address,Suburb/Town,Postcode/Zip,State,Country,Note 1
-
-      const csvRows: string[] = [];
-
-      // Add header row
-      csvRows.push('First Name,Last Name,Phone,Email,Company Name,Business Number,Street Address,Suburb/Town,Postcode/Zip,State,Country,Note 1');
-
-      // Add data rows
-      for (const business of businesses) {
-        // Parse contact name into first and last name
-        let firstName = '';
-        let lastName = '';
-        if (business.contactName) {
-          const nameParts = business.contactName.trim().split(' ');
-          if (nameParts.length > 1) {
-            firstName = nameParts[0];
-            lastName = nameParts.slice(1).join(' ');
-          } else {
-            firstName = nameParts[0] || '';
-          }
-        }
-
-        // Format phone number
-        const phone = business.phone || '';
-
-        // Email
-        const email = business.email || '';
-
-        // Company name
-        const companyName = escapeCsvValue(business.businessName || '');
-
-        // Business number - use phone as business number
-        const businessNumber = business.phone || '';
-
-        // Address components - use formattedAddress if available
-        let streetAddress = '';
-        let suburbTown = '';
-        let postcodeZip = '';
-        let state = '';
-
-        if (business.formattedAddress) {
-          // Parse Google's formatted address
-          // Format: "123 Main St, City, ST 12345, Country"
-          const parts = business.formattedAddress.split(',').map(p => p.trim());
-
-          if (parts.length >= 3) {
-            streetAddress = escapeCsvValue(parts[0]); // Street address
-            suburbTown = escapeCsvValue(parts[1]); // City
-
-            // Parse "ST 12345" format
-            const stateZipPart = parts[2];
-            const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s+(\d{5}(-\d{4})?)$/);
-            if (stateZipMatch) {
-              state = stateZipMatch[1];
-              postcodeZip = stateZipMatch[2];
-            } else {
-              // Fallback: use the whole part as state
-              state = escapeCsvValue(stateZipPart);
-            }
-          } else {
-            // Fallback: use formatted address as street address
-            streetAddress = escapeCsvValue(business.formattedAddress);
-          }
-        } else {
-          // Use individual fields
-          streetAddress = escapeCsvValue(business.address || '');
-          suburbTown = escapeCsvValue(business.city || '');
-          postcodeZip = business.zipCode || '';
-          state = business.state || '';
-        }
-
-        const country = business.country || 'USA';
-
-        // Note 1 - Include useful metadata
-        const notes = [];
-        if (business.businessType) notes.push(`Type: ${business.businessType}`);
-        if (business.industry) notes.push(`Industry: ${business.industry}`);
-        if (business.googleRating) notes.push(`Rating: ${business.googleRating}⭐`);
-        if (business.confidenceScore) notes.push(`Confidence: ${Number(business.confidenceScore) * 100}%`);
-        if (business.dataSource) notes.push(`Source: ${business.dataSource}`);
-        if (business.linkedinUrl) notes.push(`LinkedIn: ${business.linkedinUrl}`);
-
-        const note1 = escapeCsvValue(notes.join(' | '));
-
-        // Build CSV row
-        const row = [
-          escapeCsvValue(firstName),
-          escapeCsvValue(lastName),
-          escapeCsvValue(phone),
-          escapeCsvValue(email),
-          companyName,
-          escapeCsvValue(businessNumber),
-          streetAddress,
-          suburbTown,
-          escapeCsvValue(postcodeZip),
-          escapeCsvValue(state),
-          escapeCsvValue(country),
-          note1,
-        ].join(',');
-
-        csvRows.push(row);
-      }
-
-      const csvContent = csvRows.join('\n');
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `bizleads_export_${timestamp}.csv`;
-
-      // Return CSV file
-      return new NextResponse(csvContent, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${filename}"`,
-        },
+    if (format === 'json') {
+      // Return JSON export
+      return NextResponse.json({
+        success: true,
+        count: businesses.length,
+        exportedAt: new Date().toISOString(),
+        businesses: businesses.map(b => ({
+          id: b.id,
+          businessName: b.businessName,
+          contactName: b.contactName,
+          email: b.email,
+          phone: b.phone,
+          website: b.website,
+          businessType: b.businessType,
+          industry: b.industry,
+          address: b.address,
+          city: b.city,
+          state: b.state,
+          zipCode: b.zipCode,
+          country: b.country,
+          latitude: b.latitude?.toString(),
+          longitude: b.longitude?.toString(),
+          googlePlaceId: b.googlePlaceId,
+          googleRating: b.googleRating?.toString(),
+          googleReviewCount: b.googleReviewCount,
+          hunterEmailPattern: b.hunterEmailPattern,
+          hunterEmailCount: b.hunterEmailCount,
+          emailValid: b.emailValid,
+          companySize: b.companySize,
+          linkedinUrl: b.linkedinUrl,
+          twitterHandle: b.twitterHandle,
+          facebookUrl: b.facebookUrl,
+          logoUrl: b.logoUrl,
+          leadScore: b.confidenceScore ? Number(b.confidenceScore) * 100 : null,
+          leadPriority: b.leadPriority,
+          leadStatus: b.leadStatus,
+          createdAt: b.createdAt,
+        })),
       });
     }
 
-    // Default: Return JSON if format not recognized
-    return NextResponse.json({
-      success: true,
-      count: businesses.length,
-      businesses,
+    // CSV Export - Complete enriched data
+    const csvRows: string[] = [];
+
+    // CSV Headers - All enriched fields
+    csvRows.push([
+      // Contact Information
+      'Contact Name',
+      'Business Name',
+      'Email',
+      'Phone',
+      'Website',
+
+      // Business Details
+      'Business Type',
+      'Industry',
+      'Company Size',
+
+      // Address
+      'Street Address',
+      'City',
+      'State',
+      'Zip Code',
+      'Country',
+      'Formatted Address',
+
+      // Location Data
+      'Latitude',
+      'Longitude',
+      'Google Place ID',
+
+      // Enrichment Data
+      'Google Rating',
+      'Google Reviews',
+      'Email Pattern',
+      'Email Count',
+      'Email Valid',
+
+      // Social Profiles
+      'LinkedIn',
+      'Twitter',
+      'Facebook',
+      'Company Logo',
+
+      // Lead Information
+      'Lead Score',
+      'Lead Priority',
+      'Lead Status',
+      'Last Contacted',
+      'Next Follow Up',
+
+      // Metadata
+      'Created Date',
+      'OCR Confidence',
+      'Business ID',
+    ].join(','));
+
+    // Add data rows
+    for (const b of businesses) {
+      const row = [
+        // Contact Information
+        escapeCsv(b.contactName),
+        escapeCsv(b.businessName),
+        escapeCsv(b.email),
+        escapeCsv(b.phone),
+        escapeCsv(b.website),
+
+        // Business Details
+        escapeCsv(b.businessType),
+        escapeCsv(b.industry),
+        escapeCsv(b.companySize),
+
+        // Address
+        escapeCsv(b.address),
+        escapeCsv(b.city),
+        escapeCsv(b.state),
+        escapeCsv(b.zipCode),
+        escapeCsv(b.country),
+        escapeCsv(b.formattedAddress),
+
+        // Location Data
+        b.latitude?.toString() || '',
+        b.longitude?.toString() || '',
+        escapeCsv(b.googlePlaceId),
+
+        // Enrichment Data
+        b.googleRating?.toString() || '',
+        b.googleReviewCount?.toString() || '',
+        escapeCsv(b.hunterEmailPattern),
+        b.hunterEmailCount?.toString() || '',
+        b.emailValid ? 'Yes' : 'No',
+
+        // Social Profiles
+        escapeCsv(b.linkedinUrl),
+        escapeCsv(b.twitterHandle),
+        escapeCsv(b.facebookUrl),
+        escapeCsv(b.logoUrl),
+
+        // Lead Information
+        b.confidenceScore ? Math.round(Number(b.confidenceScore) * 100).toString() : '',
+        escapeCsv(b.leadPriority),
+        escapeCsv(b.leadStatus),
+        b.lastContactedAt ? formatDate(b.lastContactedAt) : '',
+        b.nextFollowUpAt ? formatDate(b.nextFollowUpAt) : '',
+
+        // Metadata
+        formatDate(b.createdAt),
+        b.confidenceScore ? (Number(b.confidenceScore) * 100).toFixed(0) + '%' : '',
+        escapeCsv(b.id),
+      ].join(',');
+
+      csvRows.push(row);
+    }
+
+    const csvContent = csvRows.join('\n');
+
+    // Generate filename with timestamp and filters
+    const timestamp = new Date().toISOString().split('T')[0];
+    let filename = `bizleads_export_${timestamp}`;
+
+    if (leadPriority) filename += `_${leadPriority}`;
+    if (leadStatus) filename += `_${leadStatus}`;
+    filename += `.csv`;
+
+    // Return CSV file
+    return new NextResponse(csvContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
     });
   } catch (error: any) {
     console.error('Export error:', error);
@@ -181,10 +232,9 @@ export async function GET(request: NextRequest) {
 /**
  * Escape CSV value to handle commas, quotes, and newlines
  */
-function escapeCsvValue(value: string): string {
-  if (!value) return '';
+function escapeCsv(value: any): string {
+  if (value === null || value === undefined) return '';
 
-  // Convert to string if not already
   const stringValue = String(value);
 
   // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
@@ -193,4 +243,12 @@ function escapeCsvValue(value: string): string {
   }
 
   return stringValue;
+}
+
+/**
+ * Format date to readable format
+ */
+function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toISOString().split('T')[0]; // YYYY-MM-DD format
 }
