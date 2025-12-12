@@ -110,18 +110,11 @@ export async function POST(request: NextRequest) {
 
         if (bestEmail) {
           updateData.email = bestEmail.value;
-          updateData.emailConfidence = bestEmail.confidence;
-          if (bestEmail.position) updateData.contactPosition = bestEmail.position;
-          if (bestEmail.seniority) updateData.contactSeniority = bestEmail.seniority;
-          if (bestEmail.department) updateData.contactDepartment = bestEmail.department;
-          if (bestEmail.linkedin) updateData.contactLinkedin = bestEmail.linkedin;
-          if (bestEmail.twitter) updateData.contactTwitter = bestEmail.twitter;
-          if (bestEmail.phoneNumber) updateData.contactPhoneNumber = bestEmail.phoneNumber;
+          if (bestEmail.firstName && bestEmail.lastName) {
+            updateData.contactName = `${bestEmail.firstName} ${bestEmail.lastName}`;
+          }
         }
 
-        if (result.data.organization && !updateData.businessName) {
-          updateData.businessName = result.data.organization;
-        }
         if (result.data.linkedinUrl) updateData.linkedinUrl = result.data.linkedinUrl;
         if (result.data.twitterHandle) updateData.twitterHandle = result.data.twitterHandle;
 
@@ -251,14 +244,9 @@ export async function POST(request: NextRequest) {
           where: { id: businessId },
           data: {
             email: result.data.email,
-            emailConfidence: result.data.confidence,
-            contactName: `${result.data.firstName} ${result.data.lastName}`,
-            contactPosition: result.data.position || undefined,
-            contactSeniority: result.data.seniority || undefined,
-            contactDepartment: result.data.department || undefined,
-            contactLinkedin: result.data.linkedin || undefined,
-            contactTwitter: result.data.twitter || undefined,
-            contactPhoneNumber: result.data.phoneNumber || undefined,
+            contactName: result.data.firstName && result.data.lastName
+              ? `${result.data.firstName} ${result.data.lastName}`
+              : undefined,
             hunterEnrichedAt: new Date(),
           },
         });
@@ -290,15 +278,6 @@ export async function POST(request: NextRequest) {
           where: { id: businessId },
           data: {
             contactName: result.data.fullName || undefined,
-            contactPosition: result.data.position || undefined,
-            contactSeniority: result.data.seniority || undefined,
-            contactDepartment: result.data.department || undefined,
-            contactLinkedin: result.data.linkedin || undefined,
-            contactTwitter: result.data.twitter || undefined,
-            contactPhoneNumber: result.data.phoneNumber || undefined,
-            contactLocation: result.data.city && result.data.state ?
-              `${result.data.city}, ${result.data.state}` : undefined,
-            contactTimezone: result.data.timezone || undefined,
             hunterEnrichedAt: new Date(),
           },
         });

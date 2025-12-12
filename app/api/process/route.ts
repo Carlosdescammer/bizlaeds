@@ -406,42 +406,37 @@ IMPORTANT:
         ...googleData,
       };
 
-      // Check if business already exists before upsert
-      const existingBusiness = await prisma.business.findUnique({
+      // Check if business already exists
+      const existingBusiness = await prisma.business.findFirst({
         where: {
-          businessName_address: {
-            businessName: businessData.business_name,
-            address: businessAddress,
-          },
+          businessName: businessData.business_name,
+          address: businessAddress,
         },
       });
 
       const isNewBusiness = !existingBusiness;
 
-      // Use upsert to handle duplicates (update if exists, create if new)
-      const business = await prisma.business.upsert({
-        where: {
-          businessName_address: {
-            businessName: businessData.business_name,
-            address: businessAddress,
-          },
-        },
-        update: {
-          // Update with new data if business already exists
-          businessType: businessDataToSave.businessType,
-          city: businessDataToSave.city,
-          state: businessDataToSave.state,
-          zipCode: businessDataToSave.zipCode,
-          phone: businessDataToSave.phone || undefined,
-          email: businessDataToSave.email || undefined,
-          website: businessDataToSave.website || undefined,
-          photoUrl: businessDataToSave.photoUrl,
-          aiExtractionRaw: businessDataToSave.aiExtractionRaw,
-          confidenceScore: businessDataToSave.confidenceScore,
-          ...googleData,
-        },
-        create: businessDataToSave,
-      });
+      // Create or update business
+      const business = existingBusiness
+        ? await prisma.business.update({
+            where: { id: existingBusiness.id },
+            data: {
+              // Update with new data if business already exists
+              businessType: businessDataToSave.businessType,
+              city: businessDataToSave.city,
+              state: businessDataToSave.state,
+              zipCode: businessDataToSave.zipCode,
+              phone: businessDataToSave.phone || undefined,
+              email: businessDataToSave.email || undefined,
+              website: businessDataToSave.website || undefined,
+              aiExtractionRaw: businessDataToSave.aiExtractionRaw,
+              confidenceScore: businessDataToSave.confidenceScore,
+              ...googleData,
+            },
+          })
+        : await prisma.business.create({
+            data: businessDataToSave,
+          });
 
       console.log(`[PROCESS] ✅ Business saved: ${business.id} (${isNewBusiness ? 'NEW' : 'UPDATED'})`);
 

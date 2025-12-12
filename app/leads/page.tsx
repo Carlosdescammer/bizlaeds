@@ -390,7 +390,9 @@ export default function LeadsPage() {
                                 </div>
                               )}
                               {!business.hunterVerificationStatus && business.emailValid && (
-                                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" title="Email Format Valid" />
+                                <div title="Email Format Valid">
+                                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                </div>
                               )}
                             </div>
 

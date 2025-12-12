@@ -238,7 +238,9 @@ export default function BusinessDetailPage() {
                       {business.businessName}
                     </h2>
                     {business.emailValid && (
-                      <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" title="Verified" />
+                      <div title="Verified Email">
+                        <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      </div>
                     )}
                   </div>
 
